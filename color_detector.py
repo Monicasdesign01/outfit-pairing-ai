@@ -35,11 +35,30 @@ def closest_color_name(rgb):
 
 
 def get_dominant_color(image_path, k=3):
-    image = cv2.imread(image_path)
+    # IMREAD_UNCHANGED keeps the 4th channel (transparency), which
+    # normal imread() throws away
+    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     image = cv2.resize(image, (150, 150))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    pixels = image.reshape(-1, 3)
+    # If this image has 4 channels (Red, Green, Blue, Alpha/transparency),
+    # split off the alpha channel so we can use it to filter pixels
+    if image.shape[2] == 4:
+        bgr = image[:, :, :3]
+        alpha = image[:, :, 3]
+    else:
+        bgr = image
+        alpha = None
+
+    bgr = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    pixels = bgr.reshape(-1, 3)
+
+    if alpha is not None:
+        alpha_flat = alpha.reshape(-1)
+        # Keep only pixels where alpha > 0 — meaning "actually visible,
+        # not transparent." This throws out every background pixel rembg
+        # already removed for us.
+        pixels = pixels[alpha_flat > 0]
+
     pixels = np.float32(pixels)
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
@@ -51,9 +70,8 @@ def get_dominant_color(image_path, k=3):
 
     return tuple(int(c) for c in dominant_color)
 
-
 if __name__ == "__main__":
-    color = get_dominant_color("test2.jpg")
+    color = get_dominant_color("test2_nobg.png")
     name = closest_color_name(color)
     print(f"Dominant color (R, G, B): {color}")
     print(f"Closest color name: {name}")
