@@ -31,15 +31,24 @@ def classify_garment(image_path, candidate_labels):
 
 
 if __name__ == "__main__":
-    labels = [
+    type_labels = [
         "a photo of jeans",
         "a photo of a dress",
         "a photo of a jacket",
         "a photo of a shirt",
         "a photo of a t-shirt",
     ]
-    results = classify_garment("test2_nobg.png", labels)
+    style_labels = [
+        "a photo of fitted clothing",
+        "a photo of loose clothing",
+        "a photo of casual clothing",
+        "a photo of formal clothing",
+    ]
 
-    print("Classification results:")
-    for label, prob in results:
+    print("Garment type:")
+    for label, prob in classify_garment("test2_nobg.png", type_labels):
+        print(f"  {label}: {prob*100:.1f}%")
+
+    print("\nStyle:")
+    for label, prob in classify_garment("test2_nobg.png", style_labels):
         print(f"  {label}: {prob*100:.1f}%")
