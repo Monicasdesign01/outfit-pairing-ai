@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-# A small reference list of common color names and their RGB values.
-# This is what we compare against to name any color we detect.
+# Reference colors we compare against to turn raw RGB numbers into
+# human-readable names like "red" or "olive"
 COLOR_NAMES = {
     "red": (200, 30, 40),
     "navy": (20, 30, 80),
@@ -18,14 +18,16 @@ COLOR_NAMES = {
     "yellow": (230, 220, 60),
 }
 
+
 def closest_color_name(rgb):
+    # Finds whichever reference color above is numerically closest to
+    # the given RGB value, using simple distance math (like distance
+    # between two points on a map, just in 3D using R, G, B).
     r, g, b = rgb
     best_name = None
     best_distance = float("inf")
 
     for name, (cr, cg, cb) in COLOR_NAMES.items():
-        # Simple distance formula: how far apart are two colors in 3D space?
-        # Same idea as finding distance between two points on a map.
         distance = ((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2) ** 0.5
         if distance < best_distance:
             best_distance = distance
@@ -35,13 +37,16 @@ def closest_color_name(rgb):
 
 
 def get_dominant_color(image_path, k=3):
+    """
+    Looks at a photo and returns the single largest k-means color
+    group's RGB value. No solid/multi-color distinction — always
+    returns one usable answer.
+    """
     # IMREAD_UNCHANGED keeps the 4th channel (transparency), which
     # normal imread() throws away
     image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     image = cv2.resize(image, (150, 150))
 
-    # If this image has 4 channels (Red, Green, Blue, Alpha/transparency),
-    # split off the alpha channel so we can use it to filter pixels
     if image.shape[2] == 4:
         bgr = image[:, :, :3]
         alpha = image[:, :, 3]
@@ -54,10 +59,9 @@ def get_dominant_color(image_path, k=3):
 
     if alpha is not None:
         alpha_flat = alpha.reshape(-1)
-        # Keep only pixels where alpha > 0 — meaning "actually visible,
-        # not transparent." This throws out every background pixel rembg
-        # already removed for us.
-        pixels = pixels[alpha_flat > 0]
+        # Keep only pixels that are solidly visible, not transparent
+        # or soft-edge noise from the background removal mask.
+        pixels = pixels[alpha_flat > 128]
 
     pixels = np.float32(pixels)
 
@@ -69,6 +73,7 @@ def get_dominant_color(image_path, k=3):
     dominant_color = centers[dominant_index]
 
     return tuple(int(c) for c in dominant_color)
+
 
 if __name__ == "__main__":
     color = get_dominant_color("test2_nobg.png")

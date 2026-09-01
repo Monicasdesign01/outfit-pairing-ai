@@ -3,7 +3,6 @@ from PIL import Image
 
 def remove_background(input_path, output_path):
     session = new_session("u2netp")
-
     input_image = Image.open(input_path)
     output_image = remove(input_image, session=session)
     output_image.save(output_path)
