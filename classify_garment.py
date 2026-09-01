@@ -1,3 +1,4 @@
+import torch
 from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 
@@ -6,6 +7,29 @@ from PIL import Image
 # the model the first time — expect a delay and an internet connection.
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+
+def get_image_embedding(image_path):
+    """
+    Turns a photo into a single numeric vector (CLIP's image
+    embedding) that captures what the image looks like. Two photos
+    that look visually similar will have vectors that are close
+    together — this is what similarity search (Step 5, FAISS) compares.
+    """
+    image = Image.open(image_path).convert("RGB")
+    inputs = processor(images=image, return_tensors="pt")
+
+    with torch.no_grad():
+        output = model.get_image_features(**inputs)
+
+    # In this project's installed transformers version, get_image_features()
+    # returns a BaseModelOutputWithPooling object rather than a plain
+    # tensor. pooler_output is the actual 512-dim projected CLIP embedding
+    # (last_hidden_state is the pre-pooling per-patch output, not what we want).
+    image_features = output.pooler_output
+
+    return image_features[0].tolist()
+
 
 def classify_garment(image_path, candidate_labels):
     image = Image.open(image_path).convert("RGB")

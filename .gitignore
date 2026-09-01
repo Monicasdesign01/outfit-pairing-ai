@@ -6,3 +6,8 @@ __pycache__/
 *.jpeg
 *.png
 test_images/
+
+# Catalog images must ship with the deployed app, so un-ignore them
+# even though *.jpg/*.jpeg/*.png are blanket-ignored above.
+!catalog_images/
+!catalog_images/**

@@ -1,0 +1,17 @@
+[
+  {"id": "cat_01", "filename": "test_01_jacketDress.jpg", "name": "Structured Jacket Dress", "category": "dress", "price": 2499},
+  {"id": "cat_02", "filename": "test_02_BlazerAndSkirt.jpg", "name": "Tailored Blazer", "category": "blazer", "price": 3299},
+  {"id": "cat_03", "filename": "test_03_jeans.jpg", "name": "Classic Straight Jeans", "category": "jeans", "price": 1799},
+  {"id": "cat_04", "filename": "test_04_jeans2.jpg", "name": "High-Rise Denim Jeans", "category": "jeans", "price": 1899},
+  {"id": "cat_05", "filename": "test_05_Skirt.jpg", "name": "A-Line Midi Skirt", "category": "skirt", "price": 1499},
+  {"id": "cat_06", "filename": "test_06_top1.jpg", "name": "Sleeveless Vest Top", "category": "top", "price": 899},
+  {"id": "cat_07", "filename": "test_07_top2.jpg", "name": "Casual Knit Top", "category": "top", "price": 999},
+  {"id": "cat_08", "filename": "test_8_kurta.jpg", "name": "Printed Cotton Kurta", "category": "kurta", "price": 1699},
+  {"id": "cat_09", "filename": "test_9_dress.jpg", "name": "Flowy Summer Dress", "category": "dress", "price": 2199},
+  {"id": "cat_10", "filename": "test_10_topAndJeans.jpg", "name": "Relaxed Fit Top", "category": "top", "price": 949},
+  {"id": "cat_11", "filename": "test_11_FittedShirt.jpg", "name": "Fitted Cotton Shirt", "category": "shirt", "price": 1599},
+  {"id": "cat_12", "filename": "test_12_shirt.jpg", "name": "Everyday Cotton Shirt", "category": "shirt", "price": 1499},
+  {"id": "cat_13", "filename": "test_13_shirt.jpg", "name": "Striped Casual Shirt", "category": "shirt", "price": 1599},
+  {"id": "cat_14", "filename": "test_14_differentdress.jpg", "name": "Sculptural Statement Dress", "category": "dress", "price": 2999},
+  {"id": "cat_15", "filename": "test_15_hoodie.jpg", "name": "Zip-Up Hooded Sweatshirt", "category": "hoodie", "price": 1899}
+]

@@ -98,9 +98,15 @@ This has **not been done yet**. Whoever picks this up next (a new chat, or Claud
 
 All six items above are done: `remove_background.py` confirmed on `u2netp`; `color_detector.py` reverted to the simplified `k=3`, single-largest-group, no-threshold version; the abandoned segmentation files (`Cloth_only.py`, `crop_upper_body.py` were already committed, `analyse_garment.py` and `check_blank_crops.py` committed separately with an explicit "abandoned experiment" note rather than deleted, so the debugging work stays visible in history); working improvements committed with an honest message; pushed to GitHub.
 
+### Step 4 — done, 2026-09-02
+
+`catalog.json` and CLIP embeddings built. **Placeholder catalog, by deliberate choice**: no real catalog photos existed yet, so the 15 `test_images/` photos were reused as a stand-in catalog (copied into `catalog_images/`, `test_images/` left untouched) so the full pipeline could be built and actually run today rather than blocked on sourcing real product photos. Swap in real catalog photos later without changing any code — just replace `catalog_images/` and regenerate `catalog.json` + embeddings.
+
+Full write-up in Section 11 below. Short version: `catalog_images/` was explicitly un-ignored in `.gitignore` (the exact risk flagged in Section 7); `build_catalog_embeddings.py` background-removes each catalog photo once (cached to `catalog_images/nobg/`) and computes a CLIP image embedding for it, all cached to `catalog_embeddings.npz`. Found and fixed a real bug: the installed `transformers` version (5.15.1) changed `CLIPModel.get_image_features()` to return a `BaseModelOutputWithPooling` object instead of a plain tensor — the actual 512-dim embedding is `.pooler_output`. Verified by inspecting the object directly rather than assuming the remembered API still held.
+
 ### Next action
 
-Begin **Step 4: build catalog.json and compute embeddings.**
+Begin **Step 5: the matching engine (classify → filter → retrieve → re-rank)** — the intellectual core of the project, worth slowing down for per Section 1.
 
 ---
 
@@ -176,7 +182,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 2B | Background removal | done (plain u2netp version — segmentation abandoned, see Section 2) |
 | 3 | Garment classifier (CLIP) | done |
 | 3B | Accuracy check | done, real numbers in Section 2, needs README write-up eventually |
-| 4 | Build catalog.json + embeddings | next |
+| 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | not started — the intellectual core |
 | 6 | Test pipeline end-to-end, text only | not started |
 | 7 | RAG explanation layer + fallback | not started |
@@ -251,6 +257,20 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 > Keep each entry to a few short paragraphs — thorough enough to actually explain the step, not so long Monica won't read it.
 
 *(Entries begin below as each step is completed, one dated entry per step, each covering what was built, which model/tool was used, and why. If this section is still empty, no steps have been built yet under the v6 fast-build mode.)*
+
+### 2026-09-02 — Step 4: catalog.json + embeddings
+
+**What was built:** A `catalog.json` file listing 15 catalog items (id, filename, name, category, price), a `catalog_images/` folder holding the actual photos, and a script (`build_catalog_embeddings.py`) that turns every catalog photo into a numeric "fingerprint" (its CLIP embedding) and saves all 15 of them to one cache file, `catalog_embeddings.npz`, so they never need recomputing on a customer visit.
+
+**Which tools were used:** CLIP (`openai/clip-vit-base-patch32`) via HuggingFace `transformers`, the same model already used for Step 3's type/style classification — but a different function on it. Step 3 asks CLIP "which of these text labels fits this photo best?" Step 4 asks it "turn this photo into a vector of numbers" (`get_image_features`), with no text involved at all. That vector is what similarity search compares in Step 5. Background removal (`rembg`, `u2netp`) is run once per catalog photo first, and cached to `catalog_images/nobg/`, so catalog embeddings are computed on the same kind of clean, background-free image a customer's uploaded photo will be — comparing garment-to-garment, not garment-plus-background-to-garment.
+
+**Why this, not an alternative:** embeddings could be recomputed live every time someone visits the site, but that's real, unnecessary CPU work on a free-tier deployment for something that never changes per catalog photo — computing once and caching to a file is the obvious efficient choice. A `.npz` file (NumPy's compressed array format) was used over, say, storing embeddings inside `catalog.json` itself, because catalog.json stays small and human-readable as hand-built metadata, while the embeddings are a separate, larger, purely numeric cache that Step 5 loads separately.
+
+**Real judgment call — placeholder catalog:** there were no actual catalog product photos in the project yet (no photos from Unsplash/Pexels, none of Monica's own). Rather than block Step 4 entirely on sourcing real photos, the existing 15 `test_images/` photos (already used for the Step 3B accuracy check) were reused as a stand-in catalog, copied into `catalog_images/` so `test_images/` itself stays untouched. This means the current catalog.json entries (names, categories, prices) are placeholder data invented to make the pipeline runnable end-to-end today, not real inventory — swap in real photos and metadata later without touching any code, then just rerun `build_catalog_embeddings.py`.
+
+**Real bug found and fixed:** the installed `transformers` version (5.15.1) changed what `CLIPModel.get_image_features()` returns — it now comes back as a `BaseModelOutputWithPooling` object instead of a plain tensor, with `last_hidden_state` (per-patch features, shape `[1, 50, 768]`) alongside the actual `pooler_output` (the real 512-dim CLIP embedding, shape `[1, 512]`). The first version of the code silently used the wrong field and produced a broken embedding shape. Caught by actually inspecting the object's contents and checking the installed library version, not by assuming a remembered API still applied — exactly the "verify, don't assume" discipline this file asks for.
+
+**Known limitation, stated honestly:** the catalog is currently 15 placeholder items with made-up names/prices, reused test photos rather than real product photography. This is fine for building and demoing the pipeline, but the README (Step 11) should say plainly that the deployed catalog needs real, appropriately-licensed photos before this is a genuine e-commerce demo rather than a technical proof of concept.
 
 ---
 
