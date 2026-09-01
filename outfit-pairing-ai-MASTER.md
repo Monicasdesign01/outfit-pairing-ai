@@ -104,9 +104,13 @@ All six items above are done: `remove_background.py` confirmed on `u2netp`; `col
 
 Full write-up in Section 11 below. Short version: `catalog_images/` was explicitly un-ignored in `.gitignore` (the exact risk flagged in Section 7); `build_catalog_embeddings.py` background-removes each catalog photo once (cached to `catalog_images/nobg/`) and computes a CLIP image embedding for it, all cached to `catalog_embeddings.npz`. Found and fixed a real bug: the installed `transformers` version (5.15.1) changed `CLIPModel.get_image_features()` to return a `BaseModelOutputWithPooling` object instead of a plain tensor — the actual 512-dim embedding is `.pooler_output`. Verified by inspecting the object directly rather than assuming the remembered API still held.
 
+### Step 5 — done, 2026-09-02
+
+Full write-up and confirmed test results in Section 11 below (`matching_engine.py` + `pairing_rules.py`). Also installed `faiss-cpu==1.15.0` (added to `requirements.txt`, regenerated cleanly in UTF-8 while at it — the existing `requirements.txt` had the same UTF-16/BOM corruption already documented for `.py` files in this section, likely from an earlier `pip freeze > requirements.txt` in PowerShell).
+
 ### Next action
 
-Begin **Step 5: the matching engine (classify → filter → retrieve → re-rank)** — the intellectual core of the project, worth slowing down for per Section 1.
+Begin **Step 6: test the pipeline end-to-end, text only** — confirm Steps 2–5 work together as one flow before any visual layer is added.
 
 ---
 
@@ -183,7 +187,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 3 | Garment classifier (CLIP) | done |
 | 3B | Accuracy check | done, real numbers in Section 2, needs README write-up eventually |
 | 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
-| 5 | Matching engine (classify to filter to retrieve to re-rank) | not started — the intellectual core |
+| 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | not started |
 | 7 | RAG explanation layer + fallback | not started |
 | 8 | Streamlit app — Shop, Try It On, category filter | not started |
@@ -272,6 +276,26 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 
 **Known limitation, stated honestly:** the catalog is currently 15 placeholder items with made-up names/prices, reused test photos rather than real product photography. This is fine for building and demoing the pipeline, but the README (Step 11) should say plainly that the deployed catalog needs real, appropriately-licensed photos before this is a genuine e-commerce demo rather than a technical proof of concept.
 
+### 2026-09-02 — Step 5: the matching engine (classify → filter → retrieve → re-rank)
+
+**What this step is:** the intellectual core of the whole project — Monica's own upload gets turned into ranked catalog matches, not by "find the most visually similar item overall" (which would just return more of the same thing), but by first working out what pairs with the uploaded item at all, and only then searching for good-looking options within that narrowed set. The four stages, in the order they actually run:
+
+1. **Classify** — CLIP (same model and same zero-shot approach as Step 3) looks at the uploaded photo and picks its category from a fixed list matching the catalog's own categories (dress, blazer, jeans, skirt, top, shirt, kurta, hoodie).
+2. **Filter** — a small hand-written table says which categories are allowed to pair with which. Bottoms (jeans, skirts) pair with tops, shirts, kurtas, hoodies, and blazers, but never with each other or with dresses. Dresses, being a complete outfit on their own, only pair with a blazer layered over them. This is plain rule logic, not a model — there's no free "what pairs with what" dataset, and rules stay explainable in an interview.
+3. **Retrieve** — FAISS searches for the most visually similar catalog items, but only within the categories the filter step allowed, using **one FAISS index per category** rather than one big index with results filtered afterward. The reason: FAISS has no clean built-in way to say "search everything, but only actually consider these N items" — a single shared index would need extra bookkeeping to discard disallowed results after the fact, whereas a separate index per category means the filtering already happened before any search runs, so the query only ever touches items it's allowed to return.
+4. **Re-rank** — the shortlist FAISS returns gets reordered using two more hand-written rule tables: a colour-relationship table (which colours are considered complementary, analogous, or safely neutral against each other) and a silhouette table (e.g. a fitted top balances a loose bottom, matching formality levels pair better than mismatched ones). Both scores get combined with the FAISS similarity score into one final ranking.
+
+**Honest note on FAISS at this scale:** the catalog is 15 placeholder items split across 8 categories — some categories have one or two items in them. At this size, a plain brute-force comparison (just computing distance to every vector directly, no index at all) would be exactly as fast as FAISS, probably faster once you count index-building overhead. FAISS is used anyway because the *code* — one index per category, built once, queried per upload — is what needs to scale, not today's tiny catalog. If the catalog grows to hundreds or thousands of real items later, this same code keeps working without a rewrite; a brute-force version would eventually need replacing. This is a deliberate engineering choice made for where the project is headed, not because it's faster today — worth saying exactly this way if asked about it in an interview, rather than overstating a performance win that doesn't exist yet at this size.
+
+**Why the weighting favors colour over style/silhouette:** Section 3B's accuracy check already found CLIP's style classification measurably weaker than its type classification (roughly 10/15 vs 12/15 correct, with a specific known failure pattern of over-predicting "formal"). Building the re-rank step to weight colour more heavily than style/silhouette is a direct, deliberate response to that earlier, real finding — not a new assumption.
+
+**Known limitations / judgment calls, stated plainly:**
+- The colour and silhouette rule tables are hand-tuned by judgment, not derived from any dataset — they encode reasonably standard colour-theory/styling conventions, but they are a starting point to refine later, not a validated ground truth.
+- Catalog items now carry a `color` and `style` field computed by running the same colour detector and CLIP style classifier used elsewhere in the project once per catalog photo (cached into `catalog.json`, the same "compute once" principle as the embeddings) — so their accuracy inherits the exact same limitations already documented for Steps 2 and 3.
+- The catalog is still the Step 4 placeholder (reused test photos), so re-ranked results are a demonstration of the ranking logic working correctly, not a claim that these specific pairings are genuinely good outfits from a real inventory.
+
+**Confirmed working, 2026-09-02:** ran the full pipeline end-to-end on two real cases rather than assuming the code was correct once it ran without errors. Uploading `test_03_jeans.jpg` (bottom) correctly retrieved only tops/shirts/kurtas/hoodies/blazers, and re-ranking visibly reordered the FAISS results — "Everyday Cotton Shirt" (0.746 similarity) moved ahead of "Relaxed Fit Top" (0.848 similarity, the highest raw similarity) once colour and style scoring were added, confirming the re-rank step does real work rather than just echoing FAISS's order. Uploading `test_9_dress.jpg` correctly returned only the one blazer in the catalog, matching the "dress only pairs with a blazer" rule. `classify_uploaded_item`, `get_paired_categories`, `build_category_indices`, `retrieve_candidates`, and `rerank` all live in `matching_engine.py`; the rule tables live in `pairing_rules.py`.
+
 ---
 
 ## 12. Technology used per step — quick reference
@@ -284,7 +308,7 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 | 3 | Identify garment type and style from a photo | CLIP (`openai/clip-vit-base-patch32`) via HuggingFace `transformers`, PyTorch (CPU build) | Zero-shot — no training data needed; CPU build used since the machine has no NVIDIA GPU |
 | 3B | Measure how accurate Step 3 actually is | Manual scoring against 15 real test photos | No shortcut for this — accuracy has to be checked against real, human-verified answers |
 | 4 | Build the searchable catalog | `catalog.json` (hand-built data) + CLIP embeddings, cached to a file | Embeddings only need computing once per catalog photo, not on every customer visit |
-| 5 | Find and rank complementary items | FAISS (one index per category) + hand-written colour/silhouette rules | FAISS is free/local/fast for similarity search; rules are used for pairing logic because no free dataset of "good outfits" exists, and rules stay explainable |
+| 5 | Find and rank complementary items | FAISS (`faiss-cpu`, one `IndexFlatIP` per category) + hand-written pairing/colour/silhouette rule tables (`pairing_rules.py`) | FAISS is free/local; one index per category avoids needing to filter a shared index after the fact, and scales unchanged if the catalog grows later (a brute-force comparison would be equally fast at today's 15-item size — FAISS is chosen for where this is headed, not a speed win yet). Rules are used for pairing/colour/silhouette because no free dataset of "good outfits" exists, and rules stay explainable; colour is weighted above style in re-ranking since Step 3B found style classification measurably weaker |
 | 6 | Confirm Steps 2–5 work together | Plain Python, text output only | Debugging is easier before any visual layer is added |
 | 7 | Generate a plain-language reason for each match | A free LLM (specific choice deferred to when this step is reached) + a template-based fallback | Free-tier LLM availability changes over time; the fallback avoids a live demo failing if the API is down |
 | 8 | User-facing app: Shop page + Try It On page | Streamlit, native multi-page mechanism | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline |
