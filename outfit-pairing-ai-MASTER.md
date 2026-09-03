@@ -98,6 +98,8 @@ This has **not been done yet**. Whoever picks this up next (a new chat, or Claud
 
 All six items above are done: `remove_background.py` confirmed on `u2netp`; `color_detector.py` reverted to the simplified `k=3`, single-largest-group, no-threshold version; the abandoned segmentation files (`Cloth_only.py`, `crop_upper_body.py` were already committed, `analyse_garment.py` and `check_blank_crops.py` committed separately with an explicit "abandoned experiment" note rather than deleted, so the debugging work stays visible in history); working improvements committed with an honest message; pushed to GitHub.
 
+**Update, 2026-09-02, later the same day:** all four abandoned segmentation files (`Cloth_only.py`, `crop_upper_body.py`, `analyse_garment.py`, `check_blank_crops.py`) have now been **deleted from the project entirely** via `git rm` (commit `c8e1c1f`), at Monica's request, to keep the working tree clean going forward. They no longer exist locally or on GitHub's current `main` — the file lists and bug descriptions below are kept as historical record of what was tried and why it was abandoned; they are not a description of what's currently in the project folder. The reasoning is preserved in git history across three commits: `6039302` (original addition of `Cloth_only.py`/`crop_upper_body.py`), `3b40b5a` (addition of `analyse_garment.py`/`check_blank_crops.py` with the abandoned-experiment explanation), and `c8e1c1f` (final removal).
+
 ### Step 4 — done, 2026-09-02
 
 `catalog.json` and CLIP embeddings built. **Placeholder catalog, by deliberate choice**: no real catalog photos existed yet, so the 15 `test_images/` photos were reused as a stand-in catalog (copied into `catalog_images/`, `test_images/` left untouched) so the full pipeline could be built and actually run today rather than blocked on sourcing real product photos. Swap in real catalog photos later without changing any code — just replace `catalog_images/` and regenerate `catalog.json` + embeddings.
@@ -240,7 +242,7 @@ This is the intellectual core of the project and the single best thing to explai
 - Which free LLM for Step 7 — check what's current when reached
 - Whether CLIP fits Streamlit Cloud's memory limit in Step 8B — find out by trying
 - Exact PyTorch/FAISS install commands — confirm against current docs, not memory
-- Whether to delete or archive the abandoned segmentation files (`Cloth_only.py`, `crop_upper_body.py`, `analyse_garment.py`, `check_blank_crops.py`) — Monica's call
+- ~~Whether to delete or archive the abandoned segmentation files~~ — resolved 2026-09-02: deleted via `git rm` (commit `c8e1c1f`), see Section 2
 
 ---
 
