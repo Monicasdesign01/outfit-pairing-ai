@@ -108,9 +108,13 @@ Full write-up in Section 11 below. Short version: `catalog_images/` was explicit
 
 Full write-up and confirmed test results in Section 11 below (`matching_engine.py` + `pairing_rules.py`). Also installed `faiss-cpu==1.15.0` (added to `requirements.txt`, regenerated cleanly in UTF-8 while at it — the existing `requirements.txt` had the same UTF-16/BOM corruption already documented for `.py` files in this section, likely from an earlier `pip freeze > requirements.txt` in PowerShell).
 
+### Step 6 — done, 2026-09-02
+
+`test_pipeline_end_to_end.py` runs `find_matches()` across all 18 available photos (16 in `test_images/` + `test.jpg` + `test2.jpg`); 18/18 completed without error. Full write-up in Section 11 below.
+
 ### Next action
 
-Begin **Step 6: test the pipeline end-to-end, text only** — confirm Steps 2–5 work together as one flow before any visual layer is added.
+Begin **Step 7: RAG explanation layer + fallback** — generate a plain-language reason for each match, with a template-based fallback in case the LLM API is unavailable during a live demo.
 
 ---
 
@@ -188,7 +192,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 3B | Accuracy check | done, real numbers in Section 2, needs README write-up eventually |
 | 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
-| 6 | Test pipeline end-to-end, text only | not started |
+| 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
 | 7 | RAG explanation layer + fallback | not started |
 | 8 | Streamlit app — Shop, Try It On, category filter | not started |
 | 8B | Deploy free on Streamlit Community Cloud | not started |
@@ -297,6 +301,18 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 **Confirmed working, 2026-09-02:** ran the full pipeline end-to-end on two real cases rather than assuming the code was correct once it ran without errors. Uploading `test_03_jeans.jpg` (bottom) correctly retrieved only tops/shirts/kurtas/hoodies/blazers, and re-ranking visibly reordered the FAISS results — "Everyday Cotton Shirt" (0.746 similarity) moved ahead of "Relaxed Fit Top" (0.848 similarity, the highest raw similarity) once colour and style scoring were added, confirming the re-rank step does real work rather than just echoing FAISS's order. Uploading `test_9_dress.jpg` correctly returned only the one blazer in the catalog, matching the "dress only pairs with a blazer" rule. `classify_uploaded_item`, `get_paired_categories`, `build_category_indices`, `retrieve_candidates`, and `rerank` all live in `matching_engine.py`; the rule tables live in `pairing_rules.py`.
 
 **Known limitation found while demonstrating the colour rule, 2026-09-02:** asked to show the colour-scoring rule visibly differentiating results (not just running without error), tracing through the catalog's actual colours found a real gap: `color_score()` treats `black/white/gray/cream/navy` as neutral and auto-scores 1 whenever either side is neutral, and in the current 15-photo placeholder catalog *every* bottom (both jeans, the skirt) and most tops/the blazer came back neutral — the only non-neutral colours (brown, yellow, olive) all happen to sit on garments in categories a bottom-family upload reaches. Tested two real uploads (navy jeans, red shirt) and both landed in all-neutral candidate pools, so `color_score` stayed constant at 1 in both live demos — not a bug, just an artefact of this placeholder catalog's colour distribution. Confirmed the rule itself works correctly by calling `color_score()` directly against the catalog's real non-neutral colours: a hypothetical blue upload scores 2 (complementary) against both the brown top and yellow kurta, red scores 0 against all three, green scores 1 (analogous) against the olive dress only. **This is exactly the kind of thing the Step 4 catalog rebuild (swapping in real, colour-diverse product photos) should fix** — a real catalog with non-neutral bottoms/outerwear would let this rule visibly do its job in an actual live demo, not just a direct function call.
+
+### 2026-09-02 — Step 6: test the pipeline end-to-end, text only
+
+**What was built:** `test_pipeline_end_to_end.py`, a plain-text integration test that runs the full Step 2-5 pipeline (`find_matches()`, via `matching_engine.py`) on every real photo available — all 16 files in `test_images/` plus the two leftover generic photos (`test.jpg`, `test2.jpg`) that were never copied into the catalog — and prints each upload's classified category/colour/style plus its ranked matches. Each upload is wrapped in its own try/except so one failure wouldn't stop the run, and a final summary line counts how many completed without error.
+
+**Which tools were used:** no new model or library — this step is deliberately just plain Python calling code already built in Steps 2-5 (`rembg`, CLIP via `transformers`, FAISS, the hand-written rule tables), run in a loop with text output. That's the whole point of doing this step before Step 8: confirm the pipeline holds together as one flow while debugging is still just reading printed text, not clicking through a Streamlit app.
+
+**Why this, not an alternative:** the alternative would be skipping straight to building the Streamlit UI and discovering integration problems there, where every fix means re-running the app in a browser instead of just re-reading a terminal. Doing a plain-text pass first is standard practice and explicitly what the master plan called for.
+
+**Result: 18/18 uploads ran through the full pipeline without error.** No crashes, no leftover temp files (every background-removed temp image was created and cleaned up correctly across all 18 runs, confirmed by checking the filesystem afterward rather than assuming). A few classifications show the already-documented Step 3B accuracy limits playing out on new photos - e.g. `test_12_shirt.jpg` was misclassified as "kurta", and combo photos like `test_10_topAndJeans.jpg` and `test_02_BlazerAndSkirt.jpg` only ever get one single-label category, since the classifier has no way to say "this photo shows two garments." Both are expected, already-known limitations resurfacing, not new bugs introduced by this step - Step 6's job was confirming the pipeline *runs* end-to-end, not re-measuring accuracy (Step 3B already did that separately).
+
+**Known limitation, stated plainly:** this test reuses the same photos already sitting in the catalog for 16 of its 18 cases, so it mostly proves the code path doesn't crash rather than simulating genuinely novel customer photos - only `test.jpg` and `test2.jpg` are real "the pipeline has never seen this exact photo as a catalog item" cases. That's an acceptable scope for this step (confirming the flow works, text only), not a claim that this constitutes real-world validation.
 
 ---
 
