@@ -114,9 +114,13 @@ Full write-up and confirmed test results in Section 11 below (`matching_engine.p
 
 `test_pipeline_end_to_end.py` runs `find_matches()` across all 18 available photos (16 in `test_images/` + `test.jpg` + `test2.jpg`); 18/18 completed without error. Full write-up in Section 11 below.
 
+### Step 7 — done, 2026-09-02
+
+`explanation.py` (Gemini `gemini-2.5-flash-lite` via `google-genai`, falling back to a hand-written template). No `GEMINI_API_KEY` is configured yet, so every explanation produced so far has come from the fallback - that's expected and by design, not a bug. Full write-up in Section 11 below.
+
 ### Next action
 
-Begin **Step 7: RAG explanation layer + fallback** — generate a plain-language reason for each match, with a template-based fallback in case the LLM API is unavailable during a live demo.
+Begin **Step 8: the Streamlit app** — Shop page + Try It On page, native multi-page mechanism, category filter. Before writing UI code, confirm which Streamlit navigation API currently applies (`pages/` folder vs. `st.navigation`/`st.Page`) against current docs — this file already flags that the interface has changed across versions and warns not to build against a remembered API.
 
 ---
 
@@ -195,7 +199,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
-| 7 | RAG explanation layer + fallback | not started |
+| 7 | RAG explanation layer + fallback | done — Gemini (`gemini-2.5-flash-lite`) + template fallback; no API key configured yet, so fallback is the only path actually exercised so far |
 | 8 | Streamlit app — Shop, Try It On, category filter | not started |
 | 8B | Deploy free on Streamlit Community Cloud | not started |
 | 9 | Stretch — 3D mannequin | not started |
@@ -304,6 +308,25 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 
 **Known limitation found while demonstrating the colour rule, 2026-09-02:** asked to show the colour-scoring rule visibly differentiating results (not just running without error), tracing through the catalog's actual colours found a real gap: `color_score()` treats `black/white/gray/cream/navy` as neutral and auto-scores 1 whenever either side is neutral, and in the current 15-photo placeholder catalog *every* bottom (both jeans, the skirt) and most tops/the blazer came back neutral — the only non-neutral colours (brown, yellow, olive) all happen to sit on garments in categories a bottom-family upload reaches. Tested two real uploads (navy jeans, red shirt) and both landed in all-neutral candidate pools, so `color_score` stayed constant at 1 in both live demos — not a bug, just an artefact of this placeholder catalog's colour distribution. Confirmed the rule itself works correctly by calling `color_score()` directly against the catalog's real non-neutral colours: a hypothetical blue upload scores 2 (complementary) against both the brown top and yellow kurta, red scores 0 against all three, green scores 1 (analogous) against the olive dress only. **This is exactly the kind of thing the Step 4 catalog rebuild (swapping in real, colour-diverse product photos) should fix** — a real catalog with non-neutral bottoms/outerwear would let this rule visibly do its job in an actual live demo, not just a direct function call.
 
+### 2026-09-02 — Step 7: the RAG explanation layer + fallback
+
+**What was built:** `explanation.py`, with one job — turn Step 5's already-decided match (category, colour, style, and *why* they were scored the way they were) into one short, friendly sentence for the customer. `get_explanation(uploaded, match)` tries an LLM first and falls back to a hand-written template if the LLM call fails for any reason at all (no API key configured, network issue, rate limit, unexpected response) — never raises, always returns something usable. The LLM is only ever given facts Step 5 already decided (e.g. "colour relationship: complementary") and is explicitly instructed not to invent any other product detail — it phrases, it doesn't decide, exactly matching this project's own stated principle in Section 8 ("LLM for explanation text only... deciding the match is not, since it would invent products").
+
+**Which tool was used, and why:** Google's Gemini API, via the `google-genai` Python package, model `gemini-2.5-flash-lite`. This wasn't assumed from memory - Section 9 explicitly flagged "check what's current when reached," so a live web search was run before writing any code. As of the search (2026-09-02): Gemini's free tier requires no credit card and includes several current models (2.5 Flash-Lite among them, chosen here for its higher free-tier rate limit over plain Flash); the older `google-generativeai` package is deprecated in favour of the unified `google-genai` SDK used here. The `Client(api_key=...)` and `client.models.generate_content(model=..., contents=...)` calls were confirmed to actually exist on the installed package version via direct inspection before being used in code - the same "verify, don't assume" discipline that caught the `transformers` API change in Step 4.
+
+**Why a fallback at all:** free LLM tiers can rate-limit, go down, or simply not have a key configured (which is the actual state of this project right now - no `GEMINI_API_KEY` exists yet). A live demo that hard-fails because a third-party API hiccuped would be a bad look in an interview setting. The template fallback reuses two small new rule-explanation helpers in `pairing_rules.py` (`explain_color_relationship`, `explain_silhouette_relationship`) that mirror `color_score()`/`silhouette_score()`'s exact same logic but return a descriptive label ("complementary", "neutral", "balanced", etc.) instead of a number, since a sentence needs to say *why*, not just carry a score.
+
+**Verified, not just assumed working:**
+- Confirmed the template path alone across complementary, analogous, same-colour, neutral, and no-relationship cases - all five produce sensible, readable sentences.
+- Deliberately set an invalid `GEMINI_API_KEY` and confirmed the code catches the failure and falls back to the template rather than crashing - the exact scenario the fallback exists for.
+- Ran the whole thing against real Step 5 output (`test_explanations_end_to_end.py`, two real uploads, several real matches each) rather than only hand-built sample data.
+- Found and fixed one real, if minor, bug during this: "This jeans pairs well..." reads wrong because "jeans" is plural-only - added a small exception (`_subject_phrase()`) so it correctly reads "These jeans pair well...".
+
+**Known limitations, stated plainly:**
+- No `GEMINI_API_KEY` is configured for this project yet, so every explanation seen so far - in this write-up and in testing - has come from the template fallback, not the LLM. The LLM code path is written and its method calls verified to exist, but has not actually been exercised against a real, working key. Whoever adds a key later should do one real end-to-end check that `get_explanation()` actually returns `source == "llm"` before assuming that path works in practice, not just in theory.
+- The template's phrasing is serviceable but repetitive by hand-written-template nature (especially the neutral-colour case, which is by far the most common outcome given Section 2's colour-demo-limitation finding above) - the LLM path exists specifically to make this read less templated once a key is added.
+- Gemini's exact free-tier model lineup and rate limits are known to shift over time (the same search that found `gemini-2.5-flash-lite` also surfaced a December-2025 rate-limit reduction on plain Flash) - if this model name stops working later, that's an external API change, not a bug in this code, and the fix is a one-line constant update (`GEMINI_MODEL` in `explanation.py`).
+
 ### 2026-09-02 — Step 6: test the pipeline end-to-end, text only
 
 **What was built:** `test_pipeline_end_to_end.py`, a plain-text integration test that runs the full Step 2-5 pipeline (`find_matches()`, via `matching_engine.py`) on every real photo available — all 16 files in `test_images/` plus the two leftover generic photos (`test.jpg`, `test2.jpg`) that were never copied into the catalog — and prints each upload's classified category/colour/style plus its ranked matches. Each upload is wrapped in its own try/except so one failure wouldn't stop the run, and a final summary line counts how many completed without error.
@@ -330,7 +353,7 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 | 4 | Build the searchable catalog | `catalog.json` (hand-built data) + CLIP embeddings, cached to a file | Embeddings only need computing once per catalog photo, not on every customer visit |
 | 5 | Find and rank complementary items | FAISS (`faiss-cpu`, one `IndexFlatIP` per category) + hand-written pairing/colour/silhouette rule tables (`pairing_rules.py`) | FAISS is free/local; one index per category avoids needing to filter a shared index after the fact, and scales unchanged if the catalog grows later (a brute-force comparison would be equally fast at today's 15-item size — FAISS is chosen for where this is headed, not a speed win yet). Rules are used for pairing/colour/silhouette because no free dataset of "good outfits" exists, and rules stay explainable; colour is weighted above style in re-ranking since Step 3B found style classification measurably weaker |
 | 6 | Confirm Steps 2–5 work together | Plain Python, text output only | Debugging is easier before any visual layer is added |
-| 7 | Generate a plain-language reason for each match | A free LLM (specific choice deferred to when this step is reached) + a template-based fallback | Free-tier LLM availability changes over time; the fallback avoids a live demo failing if the API is down |
+| 7 | Generate a plain-language reason for each match | Google Gemini (`gemini-2.5-flash-lite`) via `google-genai` + a hand-written template fallback | Chosen after checking current free-tier options (no credit card, several current models free) rather than from memory; the fallback avoids a live demo failing if the API is down, rate-limited, or (as is currently the case) simply not yet configured with a key |
 | 8 | User-facing app: Shop page + Try It On page | Streamlit, native multi-page mechanism | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline |
 | 8B | Put the app online with a public link | Streamlit Community Cloud (free tier) | Free hosting; smallest CLIP variant and CPU-only PyTorch used to fit memory limits |
 | 9 (stretch) | Show the outfit on a 3D figure | Three.js + a free `.glTF` mannequin, flat texture overlay | Real cloth simulation is specialist paid software; this gets visual impact without that cost |

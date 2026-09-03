@@ -108,3 +108,27 @@ def silhouette_score(style_a, style_b):
     if frozenset({style_a, style_b}) in balanced_pairs:
         return 2  # fitted + loose balances the overall silhouette
     return 0
+
+
+# Step 7 needs to say *why* two colours or styles pair well, not just
+# score them - so these mirror color_score()/silhouette_score()'s exact
+# same logic but return a descriptive label instead of a number.
+def explain_color_relationship(color_a, color_b):
+    if color_a == color_b:
+        return "same"
+    if color_a in NEUTRAL_COLORS or color_b in NEUTRAL_COLORS:
+        return "neutral"
+    pair = frozenset({color_a, color_b})
+    if pair in COMPLEMENTARY_PAIRS:
+        return "complementary"
+    if pair in ANALOGOUS_PAIRS:
+        return "analogous"
+    return "none"
+
+
+def explain_silhouette_relationship(style_a, style_b):
+    if style_a == style_b:
+        return "matching"
+    if frozenset({style_a, style_b}) == frozenset({"fitted", "loose"}):
+        return "balanced"
+    return "none"
