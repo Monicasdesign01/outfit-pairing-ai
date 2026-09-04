@@ -114,9 +114,9 @@ Full write-up and confirmed test results in Section 11 below (`matching_engine.p
 
 `test_pipeline_end_to_end.py` runs `find_matches()` across all 18 available photos (16 in `test_images/` + `test.jpg` + `test2.jpg`); 18/18 completed without error. Full write-up in Section 11 below.
 
-### Step 7 — done, 2026-09-02
+### Step 7 — done, 2026-09-02, LLM path confirmed live 2026-09-04
 
-`explanation.py` (Gemini `gemini-2.5-flash-lite` via `google-genai`, falling back to a hand-written template). No `GEMINI_API_KEY` is configured yet, so every explanation produced so far has come from the fallback - that's expected and by design, not a bug. Full write-up in Section 11 below.
+`explanation.py` (Gemini `gemini-3.5-flash-lite` via `google-genai`, falling back to a hand-written template). A real `GEMINI_API_KEY` is now configured as a persistent Windows user environment variable and confirmed working end-to-end - see the 2026-09-04 update in Section 11 below, including a real model-name fix (`2.5-flash-lite` → `3.5-flash-lite`, the old one was retired) and a VS-Code-restart gotcha worth knowing about if another key ever needs adding (see Section 3).
 
 ### Next action
 
@@ -146,6 +146,8 @@ venv\Scripts\activate.bat
 ```
 
 **File-recovery warning (see Section 2):** never use PowerShell `>` redirection to write a `.py` file — it produces UTF-16 with a BOM that Python cannot import. Use VS Code directly, or `Out-File -Encoding utf8`.
+
+**API keys (e.g. `GEMINI_API_KEY`), confirmed working 2026-09-04:** set as a persistent Windows user environment variable, run once in your own terminal, never through Claude/chat, never committed: `[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-actual-key", "User")`. `.gitignore` already excludes `.env` as a backup if a `.env` file is ever used instead. **Gotcha:** this does not become visible to an already-open VS Code / Claude Code session, even in a brand-new terminal panel inside it — the process tree hosting the tool calls only re-reads the environment at its own startup, not on a Windows registry change. **Fully quit and reopen VS Code** (not just open a new terminal) for a newly-set key to actually be visible.
 
 ---
 
@@ -199,7 +201,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
-| 7 | RAG explanation layer + fallback | done — Gemini (`gemini-2.5-flash-lite`) + template fallback; no API key configured yet, so fallback is the only path actually exercised so far |
+| 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
 | 8 | Streamlit app — Shop, Try It On, category filter | not started |
 | 8B | Deploy free on Streamlit Community Cloud | not started |
 | 9 | Stretch — 3D mannequin | not started |
@@ -327,7 +329,9 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 - The template's phrasing is serviceable but repetitive by hand-written-template nature (especially the neutral-colour case, which is by far the most common outcome given Section 2's colour-demo-limitation finding above) - the LLM path exists specifically to make this read less templated once a key is added.
 - Gemini's exact free-tier model lineup and rate limits are known to shift over time (the same search that found `gemini-2.5-flash-lite` also surfaced a December-2025 rate-limit reduction on plain Flash) - if this model name stops working later, that's an external API change, not a bug in this code, and the fix is a one-line constant update (`GEMINI_MODEL` in `explanation.py`).
 
-### 2026-09-02 — Step 6: test the pipeline end-to-end, text only
+**Update, 2026-09-04 — LLM path confirmed working with a real key.** Monica added a real `GEMINI_API_KEY`, set as a persistent Windows user environment variable (`[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "...", "User")`, never typed into chat or committed - `.env` was already in `.gitignore` as a backup, though an env var was used instead). One real setup snag, worth recording: the key wasn't visible right away even in a freshly-opened terminal, because the actual parent process hosting these tool calls (VS Code / the Claude Code session) had started *before* the registry change, and Windows only pushes persistent env-var changes to processes that re-read the environment at their own startup - not to an already-running process tree, no matter how new a terminal window opened inside it looks. Fully restarting VS Code fixed it.
+
+Once the key was live, the very first real call failed with a genuine external API-drift bug - exactly the kind anticipated in the limitation above, and resolved exactly the way predicted: `google.genai.errors.ClientError: 404 NOT_FOUND ... This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite`. Confirmed the replacement model actually works with a direct call first, then updated the one `GEMINI_MODEL` constant in `explanation.py` to `"gemini-3.5-flash-lite"`. Reran `test_explanations_end_to_end.py` against real Step 5 output (two uploads, 11 total matches) and every single one now returns `source == "llm"`, not the template - e.g. *"This gray casual Everyday Cotton Shirt is a great neutral match that completes your navy casual jeans!"* The phrasing is noticeably less repetitive than the template version, as expected. The fallback path was not lost in the process - it's still there for whenever the API is unavailable, just no longer the *only* path actually exercised.
 
 **What was built:** `test_pipeline_end_to_end.py`, a plain-text integration test that runs the full Step 2-5 pipeline (`find_matches()`, via `matching_engine.py`) on every real photo available — all 16 files in `test_images/` plus the two leftover generic photos (`test.jpg`, `test2.jpg`) that were never copied into the catalog — and prints each upload's classified category/colour/style plus its ranked matches. Each upload is wrapped in its own try/except so one failure wouldn't stop the run, and a final summary line counts how many completed without error.
 
@@ -353,7 +357,7 @@ There is also a separate Word document (`Outfit-Pairing-AI-Overview-v2.docx`) wr
 | 4 | Build the searchable catalog | `catalog.json` (hand-built data) + CLIP embeddings, cached to a file | Embeddings only need computing once per catalog photo, not on every customer visit |
 | 5 | Find and rank complementary items | FAISS (`faiss-cpu`, one `IndexFlatIP` per category) + hand-written pairing/colour/silhouette rule tables (`pairing_rules.py`) | FAISS is free/local; one index per category avoids needing to filter a shared index after the fact, and scales unchanged if the catalog grows later (a brute-force comparison would be equally fast at today's 15-item size — FAISS is chosen for where this is headed, not a speed win yet). Rules are used for pairing/colour/silhouette because no free dataset of "good outfits" exists, and rules stay explainable; colour is weighted above style in re-ranking since Step 3B found style classification measurably weaker |
 | 6 | Confirm Steps 2–5 work together | Plain Python, text output only | Debugging is easier before any visual layer is added |
-| 7 | Generate a plain-language reason for each match | Google Gemini (`gemini-2.5-flash-lite`) via `google-genai` + a hand-written template fallback | Chosen after checking current free-tier options (no credit card, several current models free) rather than from memory; the fallback avoids a live demo failing if the API is down, rate-limited, or (as is currently the case) simply not yet configured with a key |
+| 7 | Generate a plain-language reason for each match | Google Gemini (`gemini-3.5-flash-lite`) via `google-genai` + a hand-written template fallback | Chosen after checking current free-tier options rather than from memory; the fallback avoids a live demo failing if the API is down or rate-limited. Confirmed working with a real key 2026-09-04 (after fixing one real model-name drift: `2.5-flash-lite` was retired mid-project in favor of `3.5-flash-lite`) |
 | 8 | User-facing app: Shop page + Try It On page | Streamlit, native multi-page mechanism | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline |
 | 8B | Put the app online with a public link | Streamlit Community Cloud (free tier) | Free hosting; smallest CLIP variant and CPU-only PyTorch used to fit memory limits |
 | 9 (stretch) | Show the outfit on a 3D figure | Three.js + a free `.glTF` mannequin, flat texture overlay | Real cloth simulation is specialist paid software; this gets visual impact without that cost |

@@ -14,7 +14,7 @@ import os
 
 from pairing_rules import explain_color_relationship, explain_silhouette_relationship
 
-GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 COLOR_PHRASES = {
     "complementary": "{upload_color} and {match_color} are complementary colors, giving the outfit a bold contrast.",
