@@ -12,8 +12,19 @@ import time
 import streamlit as st
 
 from matching_engine import find_matches
-from explanation import get_explanation
+from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
+
+# Real constraint, not a workaround being hidden: Gemini's free tier
+# rate-limits at ~15 requests/minute, and firing off a live call per
+# retrieved match (up to 9-14 of them for some uploads) was taking
+# several minutes per upload once the SDK's automatic retry/backoff
+# kicked in (see outfit-pairing-ai-MASTER.md Section 11, Step 8). Only
+# the top-scoring matches - the ones actually most likely to matter to
+# the customer - get a live explanation; the rest use the template
+# fallback outright, without even attempting a call that would likely
+# just be rate-limited anyway.
+LIVE_EXPLANATION_LIMIT = 3
 
 st.title("Try It On Your Clothes")
 st.caption("Upload a photo of something you own, and get matched with items that pair well with it.")
@@ -40,10 +51,17 @@ if uploaded_file is not None:
                     "color": result["color"],
                     "style": result["style"],
                 }
+                # result["matches"] is already sorted by final_score
+                # (rerank() does this), so the first LIVE_EXPLANATION_LIMIT
+                # entries are genuinely the top-scoring ones.
                 t_explain_start = time.time()
-                for match in result["matches"]:
+                for i, match in enumerate(result["matches"]):
                     t0 = time.time()
-                    text, source = get_explanation(uploaded_desc, match)
+                    if i < LIVE_EXPLANATION_LIMIT:
+                        text, source = get_explanation(uploaded_desc, match)
+                    else:
+                        text = build_template_explanation(uploaded_desc, match)
+                        source = "template"
                     print(f"[TIMING] explanation for '{match['name']}' ({source}): {time.time() - t0:.2f}s")
                     match["explanation"] = text
                     match["explanation_source"] = source
