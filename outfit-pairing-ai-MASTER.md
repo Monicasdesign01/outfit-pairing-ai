@@ -118,9 +118,13 @@ Full write-up and confirmed test results in Section 11 below (`matching_engine.p
 
 `explanation.py` (Gemini `gemini-3.5-flash-lite` via `google-genai`, falling back to a hand-written template). A real `GEMINI_API_KEY` is now configured as a persistent Windows user environment variable and confirmed working end-to-end - see the 2026-09-04 update in Section 11 below, including a real model-name fix (`2.5-flash-lite` → `3.5-flash-lite`, the old one was retired) and a VS-Code-restart gotcha worth knowing about if another key ever needs adding (see Section 3).
 
+### Step 8 — built and verified 2026-09-04; one real performance issue found, not yet fixed
+
+`app.py` + `app_pages/shop.py` + `app_pages/try_it_on.py` + `shop_utils.py`, using Streamlit's current `st.Page`/`st.navigation` (confirmed against live docs, not memory - see Section 11). Shop page and the Try It On upload-to-results flow both confirmed actually working via a real headless-browser test (Playwright), not just code review. **One genuine, substantial finding: generating explanations for every retrieved match is slow enough to be a real problem** - a 9-match upload took 244s total, 222s of it just the explanation-generation loop, almost certainly Gemini free-tier rate-limiting triggering retries. Full diagnostic trail and exact numbers in Section 11. **Not yet fixed** - this needs a decision (cap how many matches get an LLM explanation, reduce default `top_k`, add concurrency, or something else) before this is genuinely demo-ready.
+
 ### Next action
 
-Begin **Step 8: the Streamlit app** — Shop page + Try It On page, native multi-page mechanism, category filter. Before writing UI code, confirm which Streamlit navigation API currently applies (`pages/` folder vs. `st.navigation`/`st.Page`) against current docs — this file already flags that the interface has changed across versions and warns not to build against a remembered API.
+Decide on and implement a fix for the Step 8 explanation-generation slowness, then continue to **Step 8B: deploy free on Streamlit Community Cloud**.
 
 ---
 
@@ -202,7 +206,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
 | 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
-| 8 | Streamlit app — Shop, Try It On, category filter | not started |
+| 8 | Streamlit app — Shop, Try It On, category filter | built and functionally verified; real performance issue found in explanation generation, not yet fixed (see Section 2/11) |
 | 8B | Deploy free on Streamlit Community Cloud | not started |
 | 9 | Stretch — 3D mannequin | not started |
 | 10 | Optional — UPI buy link | not started |
@@ -343,6 +347,29 @@ Once the key was live, the very first real call failed with a genuine external A
 
 **Known limitation, stated plainly:** this test reuses the same photos already sitting in the catalog for 16 of its 18 cases, so it mostly proves the code path doesn't crash rather than simulating genuinely novel customer photos - only `test.jpg` and `test2.jpg` are real "the pipeline has never seen this exact photo as a catalog item" cases. That's an acceptable scope for this step (confirming the flow works, text only), not a claim that this constitutes real-world validation.
 
+### 2026-09-04 — Step 8: the Streamlit app
+
+**What was built:** `app.py` (entrypoint), `app_pages/shop.py`, `app_pages/try_it_on.py`, `shop_utils.py`. Tabbed/multi-page navigation between two pages using Streamlit's `st.Page`/`st.navigation` mechanism - confirmed via a live web search this is the *current* API (not the older `pages/` folder convention), then confirmed the installed Streamlit version (1.63.0) actually has both via direct `hasattr()` inspection, before writing a line of app code. The page scripts deliberately live in a folder named `app_pages/`, not `pages/` - naming it `pages/` would trigger Streamlit's older auto-discovery mechanism alongside the explicit `st.navigation` call, which the docs warn against mixing.
+
+- **Shop page:** a plain grid over `catalog.json` - image, name, price, a `st.link_button` that opens a `upi://pay?...` deep link. No cart, no accounts, no checkout logic, exactly as scoped.
+- **Try It On Your Clothes page:** file upload → `find_matches()` (Steps 2-5) → `get_explanation()` per match (Step 7) → ranked results with a category-filter multiselect. The pipeline result is cached in `st.session_state` keyed by the uploaded file's identity, so toggling the category filter (which triggers a Streamlit rerun) doesn't re-run CLIP/rembg or re-fire live Gemini calls - only a genuinely new upload does.
+
+**Why this, not an alternative:** hand-rolling page-switching with session-state/if-else blocks was explicitly ruled out by the master plan in favour of Streamlit's own native mechanism - fewer moving parts, and it's what a Streamlit-familiar reviewer would expect to see.
+
+**Verification process, told honestly because it wasn't a straight line:** no project skill or `chromium-cli` was available on this Windows machine, so Playwright was installed as a one-time dev/verification tool (not added to `requirements.txt` - it's not something the deployed app itself needs) to actually drive the app in a real headless browser rather than just reading the code and assuming it works. Several real false starts along the way, each one run down to an actual cause rather than guessed past:
+- `wait_until="networkidle"` never resolves against a Streamlit app, because Streamlit holds a permanent WebSocket connection open for live reruns - the network is never idle. Switched to `domcontentloaded` plus explicit `wait_for_selector` calls.
+- A page navigated to for the first time in a fresh server process takes ~15s to actually paint any content (confirmed by polling, not assumed) - not a hang, just a real cold-start cost on first visit to that page script in a given server session.
+- A screenshot check reported "0 Buy buttons" twice, including on a single-match upload with a 5-second wait margin. Traced all the way through rather than accepted at face value: `st.link_button` renders as an `<a>` tag styled as a button, not a literal `<button>` element, so a `button:has-text('Buy')` CSS selector was always going to find zero - a bug in the test script, not the app. Confirmed the real button exists and works by reading the rendered body text directly, which showed the correct price, a correct LLM-generated explanation, and the word "Buy" all present and correctly ordered.
+
+**Confirmed actually working, both pages:** Shop rendered all 15 catalog items with images, names, prices, and working Buy buttons. Try It On correctly processed a real upload (`test_03_jeans.jpg`) end-to-end - correct detected category/colour/style, 9 correctly-filtered matches, real Gemini-generated explanation text, and a working category filter.
+
+**The one real problem found, not yet fixed:** timing instrumentation was added to every stage of `find_matches()` and around each `get_explanation()` call specifically to answer "is this slow or actually stuck" with real numbers instead of a guess. Result, for the 9-match jeans upload: `find_matches()` itself (background removal, two CLIP calls for category, one for style, one for the embedding, FAISS retrieval, re-rank) took a very reasonable **19.56s total**. Generating explanations for those same 9 matches took **222.71s** - over 90% of the total 243.9s. Individual per-match explanation times ranged wildly from 2.87s to 64.47s for what should be a single quick API call each, which is the signature of the `google-genai` SDK's built-in retry/backoff (`tenacity`) kicking in - almost certainly Gemini's free-tier rate limit (~15 requests/minute, per the research done for Step 7) being exceeded by firing off up to 9-14 sequential live calls for one upload. **This is a genuine, actionable finding, not just "the first upload is slower than isolated testing"** - a several-minute wait per upload is a real problem for a live demo or interview setting, and needs an actual decision (cap how many matches get an LLM explanation vs. template, reduce the default `top_k`, add concurrency, or something else) before Step 8B deployment. Logged as the next action rather than fixed unilaterally, since it changes user-facing behaviour beyond what was asked for in this pass.
+
+**Known limitations, stated plainly:**
+- The explanation-generation slowness above is unresolved.
+- The UPI merchant VPA in `shop_utils.py` (`MERCHANT_UPI_ID = "yourupi@upi"`) is a placeholder - needs Monica's real UPI ID before the Buy button does anything real.
+- Playwright (installed for this verification pass only) downloaded a real Chromium binary (~115MB) into the local machine's Playwright cache - harmless, but worth knowing it's there if disk space is ever a concern; it is not part of the project's own dependencies.
+
 ---
 
 ## 12. Technology used per step — quick reference
@@ -358,7 +385,7 @@ Once the key was live, the very first real call failed with a genuine external A
 | 5 | Find and rank complementary items | FAISS (`faiss-cpu`, one `IndexFlatIP` per category) + hand-written pairing/colour/silhouette rule tables (`pairing_rules.py`) | FAISS is free/local; one index per category avoids needing to filter a shared index after the fact, and scales unchanged if the catalog grows later (a brute-force comparison would be equally fast at today's 15-item size — FAISS is chosen for where this is headed, not a speed win yet). Rules are used for pairing/colour/silhouette because no free dataset of "good outfits" exists, and rules stay explainable; colour is weighted above style in re-ranking since Step 3B found style classification measurably weaker |
 | 6 | Confirm Steps 2–5 work together | Plain Python, text output only | Debugging is easier before any visual layer is added |
 | 7 | Generate a plain-language reason for each match | Google Gemini (`gemini-3.5-flash-lite`) via `google-genai` + a hand-written template fallback | Chosen after checking current free-tier options rather than from memory; the fallback avoids a live demo failing if the API is down or rate-limited. Confirmed working with a real key 2026-09-04 (after fixing one real model-name drift: `2.5-flash-lite` was retired mid-project in favor of `3.5-flash-lite`) |
-| 8 | User-facing app: Shop page + Try It On page | Streamlit, native multi-page mechanism | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline |
+| 8 | User-facing app: Shop page + Try It On page | Streamlit (`st.Page`/`st.navigation`), verified with Playwright (dev-only, not a project dependency) | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline. Real finding: sequential Gemini explanation calls per upload are slow (~90% of total time on a 9-match upload), likely rate-limiting - unresolved |
 | 8B | Put the app online with a public link | Streamlit Community Cloud (free tier) | Free hosting; smallest CLIP variant and CPU-only PyTorch used to fit memory limits |
 | 9 (stretch) | Show the outfit on a 3D figure | Three.js + a free `.glTF` mannequin, flat texture overlay | Real cloth simulation is specialist paid software; this gets visual impact without that cost |
 | 10 (optional) | Let a few real people buy an item | A UPI payment link, manual order tracking | A full payment gateway is unnecessary overhead for 2–10 manual orders |

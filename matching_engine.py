@@ -5,6 +5,7 @@ See outfit-pairing-ai-MASTER.md Section 11 for the full explanation.
 
 import os
 import json
+import time
 import numpy as np
 import faiss
 
@@ -164,32 +165,58 @@ def rerank(candidates, uploaded_color, uploaded_style):
 
 def find_matches(image_path, top_k=3):
     """The full Step 5 pipeline: classify -> filter -> retrieve -> re-rank."""
+    # Timing logs added while diagnosing a slow first upload through the
+    # Streamlit app - printed to stdout (visible in the streamlit run
+    # console) so it's obvious which stage is actually slow, rather than
+    # guessing. See outfit-pairing-ai-MASTER.md Section 11, Step 8.
+    t_start = time.time()
+
     # Background-removed first, matching exactly how every catalog photo
     # was processed before its embedding/color/style were computed -
     # otherwise this would be comparing "garment plus background" against
     # clean catalog embeddings, an apples-to-oranges comparison.
     nobg_path = os.path.splitext(image_path)[0] + "_matchtmp_nobg.png"
     remove_background(image_path, nobg_path)
+    t_bg = time.time()
+    print(f"[TIMING] background removal: {t_bg - t_start:.2f}s")
 
     category, _ = classify_uploaded_item(nobg_path)
     allowed_categories = get_paired_categories(category)
+    t_classify = time.time()
+    print(f"[TIMING] classify category (CLIP): {t_classify - t_bg:.2f}s")
 
     catalog = load_catalog()
     indices_by_category = build_category_indices(catalog)
+    t_index = time.time()
+    print(f"[TIMING] load catalog + build FAISS indices: {t_index - t_classify:.2f}s")
 
     uploaded_embedding = get_image_embedding(nobg_path)
+    t_embed = time.time()
+    print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_index:.2f}s")
+
     candidates = retrieve_candidates(uploaded_embedding, allowed_categories, indices_by_category, top_k)
+    t_retrieve = time.time()
+    print(f"[TIMING] FAISS retrieval: {t_retrieve - t_embed:.2f}s")
 
     uploaded_rgb = get_dominant_color(nobg_path)
     uploaded_color = closest_color_name(uploaded_rgb)
+    t_color = time.time()
+    print(f"[TIMING] color detection: {t_color - t_retrieve:.2f}s")
+
     uploaded_style = classify_uploaded_style(nobg_path)
+    t_style = time.time()
+    print(f"[TIMING] classify style (CLIP): {t_style - t_color:.2f}s")
 
     os.remove(nobg_path)
 
     ranked = rerank(candidates, uploaded_color, uploaded_style)
+    t_rerank = time.time()
+    print(f"[TIMING] re-rank: {t_rerank - t_style:.2f}s")
 
     for item in ranked:
         del item["embedding"]  # not needed past this point, keeps output readable
+
+    print(f"[TIMING] find_matches TOTAL (excludes explanation calls): {t_rerank - t_start:.2f}s")
 
     return {
         "category": category,
