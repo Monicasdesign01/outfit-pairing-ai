@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 
 # Reference colors we compare against to turn raw RGB numbers into
-# human-readable names like "red" or "olive"
+# human-readable names like "red" or "olive". "orange" added 2026-09-05 -
+# it was missing entirely, so any genuinely orange garment was forced
+# into whichever unrelated color happened to be numerically closest
+# (measured: orange RGB (219,119,102) was being called "pink").
 COLOR_NAMES = {
     "red": (200, 30, 40),
     "navy": (20, 30, 80),
@@ -16,14 +19,35 @@ COLOR_NAMES = {
     "brown": (110, 70, 40),
     "pink": (230, 150, 180),
     "yellow": (230, 220, 60),
+    "orange": (230, 126, 34),
 }
+
+# How "colorful" (vs. neutral gray/black/white) an RGB value is, using
+# the gap between its brightest and darkest channel - a genuinely neutral
+# color has R, G, and B all close together, regardless of how bright it
+# is. Below this, we skip hue-matching entirely and go by brightness -
+# fixes a real bug found 2026-09-05: a plain neutral gray, RGB (81,81,81),
+# was being called "olive" because "gray" only has one reference point
+# (150,150,150, a fairly light gray), so a darker true-gray ended up
+# numerically closer to an unrelated hue like olive purely by chance of
+# where that one point sits in 3D color space.
+NEUTRAL_CHANNEL_SPREAD = 15
 
 
 def closest_color_name(rgb):
+    r, g, b = rgb
+
+    if max(r, g, b) - min(r, g, b) < NEUTRAL_CHANNEL_SPREAD:
+        brightness = (r + g + b) / 3
+        if brightness < 60:
+            return "black"
+        if brightness < 200:
+            return "gray"
+        return "white"
+
     # Finds whichever reference color above is numerically closest to
     # the given RGB value, using simple distance math (like distance
     # between two points on a map, just in 3D using R, G, B).
-    r, g, b = rgb
     best_name = None
     best_distance = float("inf")
 

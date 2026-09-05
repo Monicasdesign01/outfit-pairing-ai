@@ -8,6 +8,16 @@ They are a reasonable starting point, not a validated ground truth.
 # One CLIP text prompt per catalog category. Whatever CLIP scores highest
 # for an uploaded photo maps directly onto one of catalog.json's own
 # category values - no separate translation step needed.
+#
+# "top" and "shirt" wording tuned 2026-09-05 against all 34 catalog items
+# as ground truth: the generic "a photo of a top"/"a photo of a shirt"
+# was the single biggest source of misclassification (top constantly
+# read as shirt), measured at 67.6% overall accuracy. Describing the
+# actual visual distinction (collar/buttons vs none) raised accuracy to
+# 79.4% - a real, measured change, not a guess. Rewording skirt, dress,
+# or shorts too (tried separately) made things *worse* every time -
+# same "more emphatic wording backfires with CLIP" lesson already found
+# for style labels in Step 3B - so those were deliberately left alone.
 CATEGORY_LABELS = {
     "dress": "a photo of a dress",
     "blazer": "a photo of a blazer",
@@ -15,8 +25,8 @@ CATEGORY_LABELS = {
     "skirt": "a photo of a skirt",
     "pants": "a photo of pants",
     "shorts": "a photo of shorts",
-    "top": "a photo of a top",
-    "shirt": "a photo of a shirt",
+    "top": "a photo of a casual t-shirt or tank top with no collar or buttons",
+    "shirt": "a photo of a collared button-up shirt",
     "kurta": "a photo of a kurta",
     "hoodie": "a photo of a hooded zip-up sweatshirt",
 }

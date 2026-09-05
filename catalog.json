@@ -68,7 +68,7 @@
     "name": "Printed Cotton Kurta",
     "category": "kurta",
     "price": 1699,
-    "color": "yellow",
+    "color": "orange",
     "style": "formal"
   },
   {
@@ -86,7 +86,7 @@
     "name": "Relaxed Fit Top",
     "category": "top",
     "price": 949,
-    "color": "brown",
+    "color": "gray",
     "style": "fitted"
   },
   {
@@ -95,7 +95,7 @@
     "name": "Fitted Cotton Shirt",
     "category": "shirt",
     "price": 1599,
-    "color": "cream",
+    "color": "white",
     "style": "formal"
   },
   {
@@ -131,7 +131,7 @@
     "name": "Zip-Up Hooded Sweatshirt",
     "category": "hoodie",
     "price": 1899,
-    "color": "navy",
+    "color": "black",
     "style": "loose"
   },
   {
@@ -149,7 +149,7 @@
     "name": "Grey Pants",
     "category": "pants",
     "price": 1699,
-    "color": "olive",
+    "color": "gray",
     "style": "formal"
   },
   {
@@ -185,7 +185,7 @@
     "name": "Blue Top",
     "category": "top",
     "price": 999,
-    "color": "cream",
+    "color": "gray",
     "style": "fitted"
   },
   {
@@ -212,7 +212,7 @@
     "name": "Light Blue Top",
     "category": "top",
     "price": 999,
-    "color": "cream",
+    "color": "white",
     "style": "casual"
   },
   {
@@ -248,7 +248,7 @@
     "name": "Orange Top",
     "category": "top",
     "price": 999,
-    "color": "pink",
+    "color": "orange",
     "style": "casual"
   },
   {
@@ -275,7 +275,7 @@
     "name": "Pink Glitter Skirt",
     "category": "skirt",
     "price": 1799,
-    "color": "gray",
+    "color": "orange",
     "style": "fitted"
   },
   {
