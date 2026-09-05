@@ -153,10 +153,17 @@ A real, related problem the manual colour/category override didn't fully solve: 
 
 **Verified with a real headless-browser test:** uploaded a real combo photo (`test_10_topAndJeans.jpg`, showing both a top and jeans), confirmed the crop box actually renders as a draggable overlay on the image (screenshotted, not just assumed from the code), clicked "Use this crop," and confirmed the flow correctly proceeds to the category/colour/style detection step afterward with no console errors.
 
+### Real bug found live: "beige" crashed the colour dropdown — fixed, 2026-09-06
+
+Monica tried the crop feature and hit a `ValueError` crash on `COLOR_OPTIONS.index(detected["color"])`. Real bug, found the moment a customer photo happened to be detected as beige: `closest_color_name()` can genuinely return `"beige"` (a special case in its neutral-detection branch - see Section 11's earlier colour-detection entries), but `"beige"` was never an actual *key* in either `NEUTRAL_REFERENCE` or `CHROMATIC_FAMILIES` - it's a bare string returned inline in the function body. `try_it_on.py`'s dropdown options were built by combining those two dicts' keys, which silently missed it, so any upload detected as beige crashed the whole page.
+
+**Fixed properly, not just patched around the one missing value:** added `ALL_COLOR_NAMES` to `color_detector.py` itself - a single, authoritative list of every string `closest_color_name()` can possibly return, defined right next to the function so it can't drift out of sync again. `try_it_on.py` now imports and uses this directly instead of reconstructing an options list from dicts that were never a complete picture. **Verified exhaustively, not just for the one reported case:** ran `closest_color_name()` against 20,000 random RGB values and confirmed every single result appears in `ALL_COLOR_NAMES` - zero exceptions, not just spot-checked against the one beige case that actually crashed. Re-ran the full 34-item pipeline smoke test afterward: 34/34 still succeeded.
+
 ### Next action
 
-Monica to push this live and retest the Try It On page - check the three dropdowns, the crop step on a combo/full-outfit photo, and that the Shop page shows visibly better colours (Light Green Blazer should now look genuinely different from Beige Blazer). Streamlit Cloud auto-redeploys on every push to `main`. Also still pending: confirm the earlier opencv-python-headless fix is live if that hasn't been checked yet.
+Monica to push this fix live and retest the Try It On page - upload a photo, try the crop step, and get all the way through to seeing ranked matches without a crash this time. Also still pending: confirm the three dropdowns, the colour corrections, and the opencv-python-headless fix are all working as expected on the live deployment, not just locally.
 
+---
 ---
 
 ## 3. Environment — confirmed working, do not re-derive

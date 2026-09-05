@@ -73,6 +73,17 @@ CHROMATIC_FAMILIES = {
 # plus the "beige" special case below).
 NEUTRAL_SATURATION_THRESHOLD = 0.08
 
+# Every string closest_color_name() can possibly return - the single
+# source of truth for anything that needs to enumerate valid color
+# names (e.g. a dropdown of options). "beige" is a real return value
+# (see the neutral-branch special case below) but isn't a key in either
+# dict above, so building this list from NEUTRAL_REFERENCE/
+# CHROMATIC_FAMILIES alone would silently miss it - a real bug found
+# 2026-09-06 when a beige-detected upload crashed the app with a
+# ValueError on ".index('beige')" because it wasn't in the dropdown's
+# option list at all.
+ALL_COLOR_NAMES = sorted(set(NEUTRAL_REFERENCE) | {"beige"} | set(CHROMATIC_FAMILIES))
+
 
 def closest_color_name(rgb):
     r, g, b = rgb

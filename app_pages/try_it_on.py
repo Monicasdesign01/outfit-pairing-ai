@@ -19,10 +19,15 @@ from matching_engine import analyze_uploaded_photo, find_matches_from_details
 from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
 from pairing_rules import CATEGORY_LABELS, STYLE_LABELS
-from color_detector import NEUTRAL_REFERENCE, CHROMATIC_FAMILIES
+from color_detector import ALL_COLOR_NAMES
 
 CATEGORY_OPTIONS = sorted(CATEGORY_LABELS.keys())
-COLOR_OPTIONS = sorted(set(NEUTRAL_REFERENCE.keys()) | set(CHROMATIC_FAMILIES.keys()))
+# ALL_COLOR_NAMES is color_detector.py's own single source of truth for
+# every value closest_color_name() can return - reconstructing this list
+# by hand from its internal reference dicts (as an earlier version did)
+# missed "beige" (a real return value that isn't a dict key) and crashed
+# the app with a ValueError the first time a real upload detected it.
+COLOR_OPTIONS = ALL_COLOR_NAMES
 STYLE_OPTIONS = sorted(STYLE_LABELS.keys())
 
 # Real constraint, not a workaround being hidden: Gemini's free tier
