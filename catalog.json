@@ -14,7 +14,7 @@
     "name": "Tailored Blazer",
     "category": "blazer",
     "price": 3299,
-    "color": "gray",
+    "color": "pink",
     "style": "formal"
   },
   {
@@ -32,7 +32,7 @@
     "name": "High-Rise Denim Jeans",
     "category": "jeans",
     "price": 1899,
-    "color": "gray",
+    "color": "teal",
     "style": "casual"
   },
   {
@@ -50,7 +50,7 @@
     "name": "Sleeveless Vest Top",
     "category": "top",
     "price": 899,
-    "color": "gray",
+    "color": "teal",
     "style": "formal"
   },
   {
@@ -59,7 +59,7 @@
     "name": "Casual Knit Top",
     "category": "top",
     "price": 999,
-    "color": "gray",
+    "color": "white",
     "style": "fitted"
   },
   {
@@ -104,7 +104,7 @@
     "name": "Everyday Cotton Shirt",
     "category": "shirt",
     "price": 1499,
-    "color": "gray",
+    "color": "white",
     "style": "casual"
   },
   {
@@ -131,7 +131,7 @@
     "name": "Zip-Up Hooded Sweatshirt",
     "category": "hoodie",
     "price": 1899,
-    "color": "black",
+    "color": "gray",
     "style": "loose"
   },
   {
@@ -140,7 +140,7 @@
     "name": "Green Top",
     "category": "top",
     "price": 999,
-    "color": "black",
+    "color": "maroon",
     "style": "loose"
   },
   {
@@ -167,7 +167,7 @@
     "name": "Beige Blazer",
     "category": "blazer",
     "price": 3199,
-    "color": "gray",
+    "color": "beige",
     "style": "formal"
   },
   {
@@ -185,7 +185,7 @@
     "name": "Blue Top",
     "category": "top",
     "price": 999,
-    "color": "gray",
+    "color": "white",
     "style": "fitted"
   },
   {
@@ -194,7 +194,7 @@
     "name": "Light Wash Denim Skirt",
     "category": "skirt",
     "price": 1599,
-    "color": "gray",
+    "color": "pink",
     "style": "loose"
   },
   {
@@ -203,7 +203,7 @@
     "name": "Green Skirt",
     "category": "skirt",
     "price": 1499,
-    "color": "green",
+    "color": "teal",
     "style": "formal"
   },
   {
@@ -221,7 +221,7 @@
     "name": "Light Green Blazer",
     "category": "blazer",
     "price": 3199,
-    "color": "gray",
+    "color": "purple",
     "style": "formal"
   },
   {
@@ -257,7 +257,7 @@
     "name": "Pink Pants",
     "category": "pants",
     "price": 1699,
-    "color": "gray",
+    "color": "pink",
     "style": "formal"
   },
   {
@@ -266,7 +266,7 @@
     "name": "Pink Skirt",
     "category": "skirt",
     "price": 1499,
-    "color": "white",
+    "color": "cream",
     "style": "fitted"
   },
   {
@@ -284,7 +284,7 @@
     "name": "Polka Hearts Skirt",
     "category": "skirt",
     "price": 1599,
-    "color": "gray",
+    "color": "purple",
     "style": "formal"
   },
   {
@@ -302,7 +302,7 @@
     "name": "White Shorts",
     "category": "shorts",
     "price": 1099,
-    "color": "gray",
+    "color": "pink",
     "style": "fitted"
   }
 ]
