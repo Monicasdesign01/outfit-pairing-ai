@@ -13,6 +13,8 @@ CATEGORY_LABELS = {
     "blazer": "a photo of a blazer",
     "jeans": "a photo of jeans",
     "skirt": "a photo of a skirt",
+    "pants": "a photo of pants",
+    "shorts": "a photo of shorts",
     "top": "a photo of a top",
     "shirt": "a photo of a shirt",
     "kurta": "a photo of a kurta",
@@ -22,15 +24,18 @@ CATEGORY_LABELS = {
 # Which categories are allowed to be suggested alongside which.
 # A bottom pairs with tops/outerwear, never another bottom. A dress is
 # already a complete outfit on its own, so it only pairs with outerwear
-# layered over it.
+# layered over it. "pants" and "shorts" are bottoms too, added alongside
+# jeans/skirt with identical pairing behavior - there's no meaningful
+# styling difference in this simple rule set between "jeans" and "pants"
+# as a category of bottom, so they get the same treatment rather than
+# inventing a distinction the rules don't actually need.
+BOTTOMS = {"jeans", "skirt", "pants", "shorts"}
+TOPS = {"top", "shirt", "kurta", "hoodie"}
+
 PAIRING_RULES = {
-    "jeans": {"top", "shirt", "kurta", "hoodie", "blazer"},
-    "skirt": {"top", "shirt", "kurta", "hoodie", "blazer"},
-    "top": {"jeans", "skirt", "blazer"},
-    "shirt": {"jeans", "skirt", "blazer"},
-    "kurta": {"jeans", "skirt", "blazer"},
-    "hoodie": {"jeans", "skirt", "blazer"},
-    "blazer": {"jeans", "skirt", "top", "shirt", "kurta", "hoodie", "dress"},
+    **{bottom: TOPS | {"blazer"} for bottom in BOTTOMS},
+    **{top: BOTTOMS | {"blazer"} for top in TOPS},
+    "blazer": BOTTOMS | TOPS | {"dress"},
     "dress": {"blazer"},
 }
 

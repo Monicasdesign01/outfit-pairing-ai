@@ -133,5 +133,176 @@
     "price": 1899,
     "color": "navy",
     "style": "loose"
+  },
+  {
+    "id": "cat_16",
+    "filename": "Green_top.avif",
+    "name": "Green Top",
+    "category": "top",
+    "price": 999,
+    "color": "black",
+    "style": "loose"
+  },
+  {
+    "id": "cat_17",
+    "filename": "Grey_pants.jpg",
+    "name": "Grey Pants",
+    "category": "pants",
+    "price": 1699,
+    "color": "olive",
+    "style": "formal"
+  },
+  {
+    "id": "cat_18",
+    "filename": "Red_pants.jpg",
+    "name": "Red Pants",
+    "category": "pants",
+    "price": 1699,
+    "color": "red",
+    "style": "formal"
+  },
+  {
+    "id": "cat_19",
+    "filename": "beige_blazer.jpg",
+    "name": "Beige Blazer",
+    "category": "blazer",
+    "price": 3199,
+    "color": "gray",
+    "style": "formal"
+  },
+  {
+    "id": "cat_20",
+    "filename": "black__pant.jpg",
+    "name": "Black Pants",
+    "category": "pants",
+    "price": 1699,
+    "color": "black",
+    "style": "formal"
+  },
+  {
+    "id": "cat_21",
+    "filename": "blue_top.avif",
+    "name": "Blue Top",
+    "category": "top",
+    "price": 999,
+    "color": "cream",
+    "style": "fitted"
+  },
+  {
+    "id": "cat_22",
+    "filename": "denimlightwashblue_skirt.jpg",
+    "name": "Light Wash Denim Skirt",
+    "category": "skirt",
+    "price": 1599,
+    "color": "gray",
+    "style": "loose"
+  },
+  {
+    "id": "cat_23",
+    "filename": "green_skirt.jpg",
+    "name": "Green Skirt",
+    "category": "skirt",
+    "price": 1499,
+    "color": "green",
+    "style": "formal"
+  },
+  {
+    "id": "cat_24",
+    "filename": "light_bluetop.jpg",
+    "name": "Light Blue Top",
+    "category": "top",
+    "price": 999,
+    "color": "cream",
+    "style": "casual"
+  },
+  {
+    "id": "cat_25",
+    "filename": "lightgreen_blazer.jpg",
+    "name": "Light Green Blazer",
+    "category": "blazer",
+    "price": 3199,
+    "color": "gray",
+    "style": "formal"
+  },
+  {
+    "id": "cat_26",
+    "filename": "navy_top.jpg",
+    "name": "Navy Top",
+    "category": "top",
+    "price": 999,
+    "color": "navy",
+    "style": "casual"
+  },
+  {
+    "id": "cat_27",
+    "filename": "olive_tshirt.jpg",
+    "name": "Olive T-Shirt",
+    "category": "top",
+    "price": 799,
+    "color": "olive",
+    "style": "fitted"
+  },
+  {
+    "id": "cat_28",
+    "filename": "orangeTop.jpg",
+    "name": "Orange Top",
+    "category": "top",
+    "price": 999,
+    "color": "pink",
+    "style": "casual"
+  },
+  {
+    "id": "cat_29",
+    "filename": "pink_pants.jpg",
+    "name": "Pink Pants",
+    "category": "pants",
+    "price": 1699,
+    "color": "gray",
+    "style": "formal"
+  },
+  {
+    "id": "cat_30",
+    "filename": "pink_skirt.jpg",
+    "name": "Pink Skirt",
+    "category": "skirt",
+    "price": 1499,
+    "color": "white",
+    "style": "fitted"
+  },
+  {
+    "id": "cat_31",
+    "filename": "pinkgliter_skirt.jpg",
+    "name": "Pink Glitter Skirt",
+    "category": "skirt",
+    "price": 1799,
+    "color": "gray",
+    "style": "fitted"
+  },
+  {
+    "id": "cat_32",
+    "filename": "polkahearts_skirt.jpg",
+    "name": "Polka Hearts Skirt",
+    "category": "skirt",
+    "price": 1599,
+    "color": "gray",
+    "style": "formal"
+  },
+  {
+    "id": "cat_33",
+    "filename": "red_skirt.jpg",
+    "name": "Red Skirt",
+    "category": "skirt",
+    "price": 1499,
+    "color": "red",
+    "style": "formal"
+  },
+  {
+    "id": "cat_34",
+    "filename": "white_shorts.jpg",
+    "name": "White Shorts",
+    "category": "shorts",
+    "price": 1099,
+    "color": "gray",
+    "style": "fitted"
   }
 ]

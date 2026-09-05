@@ -122,9 +122,15 @@ Full write-up and confirmed test results in Section 11 below (`matching_engine.p
 
 `app.py` + `app_pages/shop.py` + `app_pages/try_it_on.py` + `shop_utils.py`, using Streamlit's current `st.Page`/`st.navigation` (confirmed against live docs, not memory - see Section 11). Shop page and the Try It On upload-to-results flow both confirmed actually working via a real headless-browser test (Playwright), not just code review. Found a genuine performance issue (a 9-match upload took 244s, 222s of it the explanation-generation loop, almost certainly Gemini free-tier rate-limiting) and fixed it by design decision: only the top 3 matches now get a live Gemini explanation, the rest use the template fallback outright. Verified the fix actually skips the API call for the rest (proven via 0.00s timing, not assumed), with an honest caveat that Gemini's own rate-limit recovery time is outside this code's control - see Section 11 for the full trail.
 
+### Catalog expanded with real photos — done, 2026-09-05
+
+The 19 real photos Monica added to `catalog_images/` are now properly part of the catalog: `catalog.json` has an entry for each (`cat_16` through `cat_34` - id, filename, name, category, price), and `build_catalog_embeddings.py` has been rerun so every one of the now-34 catalog items has a computed embedding, colour, and style, the same as the original 15. Two categories genuinely didn't exist before and needed adding - **pants** and **shorts** - both treated as bottoms with identical pairing behaviour to jeans/skirt (no meaningful styling difference in this rule set between "jeans" and "pants" as a bottom). `pairing_rules.py` was refactored slightly to build `PAIRING_RULES` from two sets (`BOTTOMS`, `TOPS`) instead of listing every category's pairs by hand, specifically so adding a category doesn't mean manually updating five different lines - verified this produces byte-for-byte the same rules as before for the original 8 categories, not just assumed. Full write-up in Section 11.
+
+**Real content decision made without Monica's input, flagged plainly:** names and prices for the 19 new items were inferred from filenames (e.g. `pink_skirt.jpg` → "Pink Skirt", ₹1499) since no real names/prices were provided. These are placeholders in the same spirit as the original 15, just for genuinely real photos this time - worth a real pass to confirm or correct before this goes anywhere customer-facing.
+
 ### Next action
 
-Continue to **Step 8B: deploy free on Streamlit Community Cloud**. Separately: 19 new untracked real catalog photos have appeared in `catalog_images/` (not added by Claude this session) - decide with Monica whether/when to rebuild `catalog.json` and embeddings around them before or alongside 8B.
+Continue to **Step 8B: deploy free on Streamlit Community Cloud**.
 
 ---
 
@@ -202,7 +208,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 2B | Background removal | done (plain u2netp version — segmentation abandoned, see Section 2) |
 | 3 | Garment classifier (CLIP) | done |
 | 3B | Accuracy check | done, real numbers in Section 2, needs README write-up eventually |
-| 4 | Build catalog.json + embeddings | done (placeholder catalog — reused test_images/ photos, see Section 2) |
+| 4 | Build catalog.json + embeddings | done — 34 items: original 15 placeholder (reused test_images/ photos) + 19 real photos added 2026-09-05, see Section 2 |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
 | 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
@@ -373,6 +379,25 @@ Verified with real log evidence, not just "the code looks right": rerunning the 
 - Even with the fix, wall-clock time for the top 3 live explanations depends on Gemini's free-tier rate-limit state at that moment - it can still be slow if the API has recently been called heavily (as this session's own testing demonstrated). This is a genuine property of relying on a free-tier API, not something further code changes alone can fully eliminate.
 - The UPI merchant VPA in `shop_utils.py` (`MERCHANT_UPI_ID = "yourupi@upi"`) is a placeholder - needs Monica's real UPI ID before the Buy button does anything real.
 - Playwright (installed for this verification pass only) downloaded a real Chromium binary (~115MB) into the local machine's Playwright cache - harmless, but worth knowing it's there if disk space is ever a concern; it is not part of the project's own dependencies.
+
+### 2026-09-05 — Catalog expanded from 15 placeholder items to 34, with 19 real photos
+
+**What was built:** Monica added 19 real product photos directly into `catalog_images/` (outside of any Claude session). `catalog.json` was extended with an entry for each (`cat_16`-`cat_34`), and `build_catalog_embeddings.py` was rerun across the full, now-34-item catalog so every item - old placeholders and new real photos alike - has a computed CLIP embedding, dominant colour, and CLIP style, cached the same way as before.
+
+**Which tool/library was used:** no new tool - this reused every piece already built in Steps 2-4 (`rembg` for background removal, CLIP for embeddings/style, the colour detector). The only actual code change was to `pairing_rules.py`, refactored so `PAIRING_RULES` is built from two sets (`BOTTOMS = {jeans, skirt, pants, shorts}`, `TOPS = {top, shirt, kurta, hoodie}`) instead of typing out every category's allowed pairs by hand - two brand-new categories (**pants**, **shorts**) needed adding, and doing that by hand across 8+ lines is exactly the kind of place a typo creates a silent bug later.
+
+**Why this, not an alternative:** "pants" and "shorts" could have been folded into the existing "jeans"/"skirt" categories instead of getting their own labels, but that would mean CLIP is asked to call a pair of trousers "jeans" even when they clearly aren't denim - less accurate for no real benefit, since this rule set treats every bottom identically anyway. Giving them their own category costs nothing (same pairing behaviour) and keeps the catalog's own labels honest.
+
+**Verified, not assumed:**
+- Confirmed the `PAIRING_RULES` refactor produces byte-for-byte the same pairing sets for all 8 original categories, by printing them and comparing against the hand-written version from Step 5 - a refactor with no test is just a hope.
+- Confirmed Pillow can actually open the two `.avif` photos (`Green_top.avif`, `blue_top.avif`) before assuming the pipeline would work on them - it can, and since `remove_background.py` always converts to PNG before anything else touches the image, the AVIF format never reaches OpenCV or the embedding code anyway.
+- Ran all 19 new photos through the full `find_matches()` pipeline as if they were customer uploads: 19/19 completed without error. A new "shorts" upload (`white_shorts.jpg`) correctly classified as `shorts` and only retrieved top-family candidates (hoodie, top, shirt, blazer, kurta) - confirming the new categories are wired into filtering correctly, not just accepted by `CATEGORY_LABELS` and then silently mishandled downstream.
+
+**Real decision made without Monica's input, flagged plainly:** the 19 new items' display names and prices were inferred from their filenames (e.g. `denimlightwashblue_skirt.jpg` → "Light Wash Denim Skirt", ₹1599) since none were provided - placeholders in the same spirit as the original 15, except these are genuinely real product photos, so the placeholders matter more here and are worth a real review pass before anything customer-facing happens.
+
+**Known limitations, stated plainly:**
+- A handful of the new photos get a different category from CLIP than what's stored in `catalog.json` when tested as a hypothetical upload (e.g. `green_skirt.jpg` reads as "dress" to CLIP, `denimlightwashblue_skirt.jpg` reads as "shorts") - this is the same already-documented Step 3 accuracy limitation resurfacing on new photos, not a new bug, and doesn't affect anything: the catalog's *stored* category (what I assigned from the filename) is what's actually used when an item is a candidate match, completely separate from what CLIP would guess if that same photo were hypothetically uploaded by a customer.
+- Names/prices for the 19 new items are placeholders (see above) and colour/style are machine-detected with the same known imprecision already documented for Steps 2 and 3 (e.g. `Green_top.avif` detected as colour "black").
 
 ---
 
