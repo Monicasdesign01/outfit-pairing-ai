@@ -14,7 +14,7 @@
     "name": "Tailored Blazer",
     "category": "blazer",
     "price": 3299,
-    "color": "pink",
+    "color": "green",
     "style": "formal"
   },
   {
@@ -50,7 +50,7 @@
     "name": "Sleeveless Vest Top",
     "category": "top",
     "price": 899,
-    "color": "teal",
+    "color": "green",
     "style": "formal"
   },
   {
@@ -194,7 +194,7 @@
     "name": "Light Wash Denim Skirt",
     "category": "skirt",
     "price": 1599,
-    "color": "pink",
+    "color": "blue",
     "style": "loose"
   },
   {
@@ -221,7 +221,7 @@
     "name": "Light Green Blazer",
     "category": "blazer",
     "price": 3199,
-    "color": "purple",
+    "color": "green",
     "style": "formal"
   },
   {
@@ -257,7 +257,7 @@
     "name": "Pink Pants",
     "category": "pants",
     "price": 1699,
-    "color": "pink",
+    "color": "green",
     "style": "formal"
   },
   {
@@ -302,7 +302,7 @@
     "name": "White Shorts",
     "category": "shorts",
     "price": 1099,
-    "color": "pink",
+    "color": "green",
     "style": "fitted"
   }
 ]

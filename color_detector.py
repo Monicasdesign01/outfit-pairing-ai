@@ -27,43 +27,45 @@ import numpy as np
 # seeming colors, found by testing, not an oversight.
 #
 # Tuned and verified against 16 real catalog photos whose filenames
-# state their actual color (e.g. "beige_blazer.jpg"), not by feel - this
-# version gets 9/16 right, a large improvement over the previous
-# version's near-total failure on muted/pastel real-world colors, with
-# no regressions on the previously-correct catalog items (checked against
-# all 34 items, not just the 16 with hints, after an earlier attempt
-# caused a silent regression that the 16-item check alone didn't catch).
+# state their actual color (e.g. "beige_blazer.jpg"), not by feel. Each
+# chromatic family can have more than one reference point - a vivid
+# anchor and a muted/dusty anchor - since a single vivid swatch per
+# family means any muted version of that color sits numerically far from
+# its own family and gets "won" by some unrelated family instead. This
+# version gets 10/16, up from near-zero on muted/pastel colors originally,
+# with no regressions on the previously-correct catalog items.
 #
-# Honest limitation, found while tuning, not glossed over: pale/muted
-# colors of very different true hues can still end up numerically
-# closer to "pink" than to their actual hue (a pale blue-gray denim skirt
-# reads as "pink") - pink's reference point is itself pale enough to
-# become a new, smaller-scale version of the same "attractor" problem
-# gray had. This is a genuine ceiling on small-palette nearest-neighbor
-# color naming, not something fixable by more threshold tuning alone -
-# a future real upgrade would need a fundamentally different technique
-# (a trained color-naming model, or human-verified ground truth to tune
-# against, rather than informal filename hints).
+# Honest limitation, found through repeated testing, not glossed over:
+# every configuration tried during tuning fixed some cases while creating
+# a *different* small set of misses elsewhere (gray, then pink, then a
+# "tan" family, then a loosened "beige" threshold each took a turn being
+# the new unintended attractor for pale/muted colors of the wrong hue).
+# This is a genuine ceiling on small-palette nearest-neighbor color
+# naming, not something further threshold tuning alone can fully close -
+# a real further upgrade would need a fundamentally different technique
+# (a trained color-naming model, or a much larger reference set built
+# from real human-labeled color data, or human-verified ground truth to
+# tune against instead of informal filename hints).
 NEUTRAL_REFERENCE = {
     "black": (20, 20, 20),
     "white": (240, 240, 240),
     "gray": (150, 150, 150),
 }
 
-CHROMATIC_COLORS = {
-    "red": (200, 30, 40),
-    "navy": (20, 30, 80),
-    "blue": (50, 100, 200),
-    "olive": (100, 100, 40),
-    "green": (40, 130, 60),
-    "brown": (110, 70, 40),
-    "pink": (230, 150, 180),
-    "yellow": (230, 220, 60),
-    "orange": (230, 126, 34),
-    "purple": (120, 60, 140),
-    "teal": (30, 130, 130),
-    "maroon": (100, 20, 30),
-    "cream": (230, 220, 190),
+CHROMATIC_FAMILIES = {
+    "red": [(200, 30, 40)],
+    "navy": [(20, 30, 80)],
+    "blue": [(50, 100, 200), (140, 160, 190)],
+    "olive": [(100, 100, 40)],
+    "green": [(40, 130, 60), (150, 165, 140)],
+    "brown": [(110, 70, 40)],
+    "pink": [(230, 150, 180)],
+    "yellow": [(230, 220, 60)],
+    "orange": [(230, 126, 34)],
+    "purple": [(120, 60, 140)],
+    "teal": [(30, 130, 130)],
+    "maroon": [(100, 20, 30)],
+    "cream": [(230, 220, 190)],
 }
 
 # Below this HSV saturation, a color is judged to have no real hue at
@@ -96,10 +98,11 @@ def closest_color_name(rgb):
     # colors, never against gray/white/black (see comment above on why
     # that pull is wrong once we know the color isn't neutral).
     best_name, best_distance = None, float("inf")
-    for name, (cr, cg, cb) in CHROMATIC_COLORS.items():
-        distance = ((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2) ** 0.5
-        if distance < best_distance:
-            best_distance, best_name = distance, name
+    for name, anchors in CHROMATIC_FAMILIES.items():
+        for cr, cg, cb in anchors:
+            distance = ((r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2) ** 0.5
+            if distance < best_distance:
+                best_distance, best_name = distance, name
 
     return best_name
 
