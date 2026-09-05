@@ -6,7 +6,8 @@
     "category": "dress",
     "price": 2499,
     "color": "cream",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_02",
@@ -14,8 +15,9 @@
     "name": "Tailored Blazer",
     "category": "blazer",
     "price": 3299,
-    "color": "green",
-    "style": "formal"
+    "color": "beige",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_03",
@@ -23,8 +25,9 @@
     "name": "Classic Straight Jeans",
     "category": "jeans",
     "price": 1799,
-    "color": "navy",
-    "style": "casual"
+    "color": "blue",
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_04",
@@ -32,8 +35,9 @@
     "name": "High-Rise Denim Jeans",
     "category": "jeans",
     "price": 1899,
-    "color": "teal",
-    "style": "casual"
+    "color": "blue",
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_05",
@@ -41,8 +45,9 @@
     "name": "A-Line Midi Skirt",
     "category": "skirt",
     "price": 1499,
-    "color": "cream",
-    "style": "formal"
+    "color": "pink",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_06",
@@ -50,8 +55,9 @@
     "name": "Sleeveless Vest Top",
     "category": "top",
     "price": 899,
-    "color": "green",
-    "style": "formal"
+    "color": "teal",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_07",
@@ -59,8 +65,9 @@
     "name": "Casual Knit Top",
     "category": "top",
     "price": 999,
-    "color": "white",
-    "style": "fitted"
+    "color": "gray",
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_08",
@@ -68,8 +75,9 @@
     "name": "Printed Cotton Kurta",
     "category": "kurta",
     "price": 1699,
-    "color": "orange",
-    "style": "formal"
+    "color": "yellow",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_09",
@@ -78,7 +86,8 @@
     "category": "dress",
     "price": 2199,
     "color": "olive",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_10",
@@ -87,7 +96,8 @@
     "category": "top",
     "price": 949,
     "color": "gray",
-    "style": "fitted"
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_11",
@@ -96,7 +106,8 @@
     "category": "shirt",
     "price": 1599,
     "color": "white",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_12",
@@ -105,7 +116,8 @@
     "category": "shirt",
     "price": 1499,
     "color": "white",
-    "style": "casual"
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_13",
@@ -114,7 +126,8 @@
     "category": "shirt",
     "price": 1599,
     "color": "cream",
-    "style": "loose"
+    "style": "loose",
+    "color_verified": true
   },
   {
     "id": "cat_14",
@@ -123,7 +136,8 @@
     "category": "dress",
     "price": 2999,
     "color": "black",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_15",
@@ -131,8 +145,9 @@
     "name": "Zip-Up Hooded Sweatshirt",
     "category": "hoodie",
     "price": 1899,
-    "color": "gray",
-    "style": "loose"
+    "color": "navy",
+    "style": "loose",
+    "color_verified": true
   },
   {
     "id": "cat_16",
@@ -140,8 +155,9 @@
     "name": "Green Top",
     "category": "top",
     "price": 999,
-    "color": "maroon",
-    "style": "loose"
+    "color": "green",
+    "style": "loose",
+    "color_verified": true
   },
   {
     "id": "cat_17",
@@ -150,7 +166,8 @@
     "category": "pants",
     "price": 1699,
     "color": "gray",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_18",
@@ -159,7 +176,8 @@
     "category": "pants",
     "price": 1699,
     "color": "red",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_19",
@@ -168,7 +186,8 @@
     "category": "blazer",
     "price": 3199,
     "color": "beige",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_20",
@@ -177,7 +196,8 @@
     "category": "pants",
     "price": 1699,
     "color": "black",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_21",
@@ -185,8 +205,9 @@
     "name": "Blue Top",
     "category": "top",
     "price": 999,
-    "color": "white",
-    "style": "fitted"
+    "color": "blue",
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_22",
@@ -195,7 +216,8 @@
     "category": "skirt",
     "price": 1599,
     "color": "blue",
-    "style": "loose"
+    "style": "loose",
+    "color_verified": true
   },
   {
     "id": "cat_23",
@@ -203,8 +225,9 @@
     "name": "Green Skirt",
     "category": "skirt",
     "price": 1499,
-    "color": "teal",
-    "style": "formal"
+    "color": "green",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_24",
@@ -212,8 +235,9 @@
     "name": "Light Blue Top",
     "category": "top",
     "price": 999,
-    "color": "white",
-    "style": "casual"
+    "color": "blue",
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_25",
@@ -222,7 +246,8 @@
     "category": "blazer",
     "price": 3199,
     "color": "green",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_26",
@@ -231,7 +256,8 @@
     "category": "top",
     "price": 999,
     "color": "navy",
-    "style": "casual"
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_27",
@@ -240,7 +266,8 @@
     "category": "top",
     "price": 799,
     "color": "olive",
-    "style": "fitted"
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_28",
@@ -249,7 +276,8 @@
     "category": "top",
     "price": 999,
     "color": "orange",
-    "style": "casual"
+    "style": "casual",
+    "color_verified": true
   },
   {
     "id": "cat_29",
@@ -257,8 +285,9 @@
     "name": "Pink Pants",
     "category": "pants",
     "price": 1699,
-    "color": "green",
-    "style": "formal"
+    "color": "pink",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_30",
@@ -266,8 +295,9 @@
     "name": "Pink Skirt",
     "category": "skirt",
     "price": 1499,
-    "color": "cream",
-    "style": "fitted"
+    "color": "pink",
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_31",
@@ -275,8 +305,9 @@
     "name": "Pink Glitter Skirt",
     "category": "skirt",
     "price": 1799,
-    "color": "orange",
-    "style": "fitted"
+    "color": "pink",
+    "style": "fitted",
+    "color_verified": true
   },
   {
     "id": "cat_32",
@@ -284,8 +315,9 @@
     "name": "Polka Hearts Skirt",
     "category": "skirt",
     "price": 1599,
-    "color": "purple",
-    "style": "formal"
+    "color": "white",
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_33",
@@ -294,7 +326,8 @@
     "category": "skirt",
     "price": 1499,
     "color": "red",
-    "style": "formal"
+    "style": "formal",
+    "color_verified": true
   },
   {
     "id": "cat_34",
@@ -302,7 +335,8 @@
     "name": "White Shorts",
     "category": "shorts",
     "price": 1099,
-    "color": "green",
-    "style": "fitted"
+    "color": "white",
+    "style": "fitted",
+    "color_verified": true
   }
 ]

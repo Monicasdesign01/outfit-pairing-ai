@@ -163,12 +163,18 @@ def rerank(candidates, uploaded_color, uploaded_style):
     return sorted(candidates, key=lambda c: c["final_score"], reverse=True)
 
 
-def find_matches(image_path, top_k=3):
-    """The full Step 5 pipeline: classify -> filter -> retrieve -> re-rank."""
-    # Timing logs added while diagnosing a slow first upload through the
-    # Streamlit app - printed to stdout (visible in the streamlit run
-    # console) so it's obvious which stage is actually slow, rather than
-    # guessing. See outfit-pairing-ai-MASTER.md Section 11, Step 8.
+def analyze_uploaded_photo(image_path):
+    """
+    The "cheap" half of Step 5 - classify -> filter setup only, no FAISS
+    retrieval or re-ranking yet. Split out from find_matches() so the app
+    can show the customer the detected category/colour/style and let them
+    confirm or correct it *before* running the more expensive retrieval
+    step - added after real-world testing found the automatic detection
+    is wrong often enough to be worth a manual check (see Section 11,
+    Step 8 - "can we at least manually tell the app our clothes colours").
+    Returns the uploaded item's embedding too, so a second stage can run
+    retrieval without re-doing background removal or CLIP calls.
+    """
     t_start = time.time()
 
     # Background-removed first, matching exactly how every catalog photo
@@ -181,49 +187,78 @@ def find_matches(image_path, top_k=3):
     print(f"[TIMING] background removal: {t_bg - t_start:.2f}s")
 
     category, _ = classify_uploaded_item(nobg_path)
-    allowed_categories = get_paired_categories(category)
     t_classify = time.time()
     print(f"[TIMING] classify category (CLIP): {t_classify - t_bg:.2f}s")
 
-    catalog = load_catalog()
-    indices_by_category = build_category_indices(catalog)
-    t_index = time.time()
-    print(f"[TIMING] load catalog + build FAISS indices: {t_index - t_classify:.2f}s")
-
     uploaded_embedding = get_image_embedding(nobg_path)
     t_embed = time.time()
-    print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_index:.2f}s")
-
-    candidates = retrieve_candidates(uploaded_embedding, allowed_categories, indices_by_category, top_k)
-    t_retrieve = time.time()
-    print(f"[TIMING] FAISS retrieval: {t_retrieve - t_embed:.2f}s")
+    print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_classify:.2f}s")
 
     uploaded_rgb = get_dominant_color(nobg_path)
     uploaded_color = closest_color_name(uploaded_rgb)
     t_color = time.time()
-    print(f"[TIMING] color detection: {t_color - t_retrieve:.2f}s")
+    print(f"[TIMING] color detection: {t_color - t_embed:.2f}s")
 
     uploaded_style = classify_uploaded_style(nobg_path)
     t_style = time.time()
     print(f"[TIMING] classify style (CLIP): {t_style - t_color:.2f}s")
 
     os.remove(nobg_path)
-
-    ranked = rerank(candidates, uploaded_color, uploaded_style)
-    t_rerank = time.time()
-    print(f"[TIMING] re-rank: {t_rerank - t_style:.2f}s")
-
-    for item in ranked:
-        del item["embedding"]  # not needed past this point, keeps output readable
-
-    print(f"[TIMING] find_matches TOTAL (excludes explanation calls): {t_rerank - t_start:.2f}s")
+    print(f"[TIMING] analyze_uploaded_photo TOTAL: {t_style - t_start:.2f}s")
 
     return {
         "category": category,
         "color": uploaded_color,
         "style": uploaded_style,
+        "embedding": uploaded_embedding,
+    }
+
+
+def find_matches_from_details(uploaded_embedding, category, color, style, top_k=3):
+    """
+    The "expensive" half of Step 5 - filter -> retrieve -> re-rank, using
+    whatever category/colour/style are passed in. These come from
+    analyze_uploaded_photo() by default, but the app lets the customer
+    override any of them first, so this function takes the final,
+    possibly-corrected values rather than re-detecting anything.
+    """
+    t_start = time.time()
+
+    allowed_categories = get_paired_categories(category)
+
+    catalog = load_catalog()
+    indices_by_category = build_category_indices(catalog)
+
+    candidates = retrieve_candidates(uploaded_embedding, allowed_categories, indices_by_category, top_k)
+    t_retrieve = time.time()
+    print(f"[TIMING] FAISS retrieval: {t_retrieve - t_start:.2f}s")
+
+    ranked = rerank(candidates, color, style)
+    t_rerank = time.time()
+    print(f"[TIMING] re-rank: {t_rerank - t_retrieve:.2f}s")
+
+    for item in ranked:
+        del item["embedding"]  # not needed past this point, keeps output readable
+
+    return {
+        "category": category,
+        "color": color,
+        "style": style,
         "matches": ranked,
     }
+
+
+def find_matches(image_path, top_k=3):
+    """The full Step 5 pipeline in one call: classify -> filter -> retrieve
+    -> re-rank, with no chance to confirm/correct the detected details in
+    between. Kept for scripts that just want an end-to-end result (the
+    Step 6/7 test scripts, direct command-line use) - the Streamlit app
+    itself uses analyze_uploaded_photo() + find_matches_from_details()
+    separately so the customer can correct the detected details first."""
+    details = analyze_uploaded_photo(image_path)
+    return find_matches_from_details(
+        details["embedding"], details["category"], details["color"], details["style"], top_k
+    )
 
 
 if __name__ == "__main__":

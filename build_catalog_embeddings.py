@@ -41,8 +41,17 @@ def build_embeddings():
         # way the customer's uploaded photo will be, and cached straight
         # into catalog.json since they're small readable values (unlike
         # the embeddings, which are large enough to need their own file).
-        rgb = get_dominant_color(nobg_path)
-        item["color"] = closest_color_name(rgb)
+        #
+        # "color_verified" items are skipped here on purpose - after
+        # real deployment testing found the automatic color detector
+        # wrong on roughly half the catalog (see Section 11, Step 8),
+        # every color was manually checked by actually looking at each
+        # photo. Recomputing here would silently overwrite that
+        # human-verified data with the same imperfect algorithm again
+        # the next time this script runs (e.g. when new items are added).
+        if not item.get("color_verified"):
+            rgb = get_dominant_color(nobg_path)
+            item["color"] = closest_color_name(rgb)
 
         style_results = classify_garment(nobg_path, list(STYLE_LABELS.values()))
         top_style_label = style_results[0][0]
@@ -66,3 +75,5 @@ def build_embeddings():
 
 if __name__ == "__main__":
     build_embeddings()
+
+
