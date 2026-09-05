@@ -145,9 +145,17 @@ Before handing off the actual deployment (which needs Monica's own GitHub/Stream
 
 Catalog colours 17/34 corrected by direct visual review (100% on the 16-item filename check); a real "would silently undo this later" risk in `build_catalog_embeddings.py` found and fixed (`color_verified` flag). The Try It On page now shows editable category/colour/style dropdowns, pre-filled with the detection, before running matching - verified with a real browser test that overriding a value actually changes the results, not just the display. Full write-up in Section 11.
 
+### Crop-before-analyzing added — done, 2026-09-06
+
+A real, related problem the manual colour/category override didn't fully solve: a full-outfit photo (both a top and a bottom visible) only ever gets *one* category from CLIP, no matter which garment the customer actually meant. Added a crop step between upload and analysis using `streamlit-cropper` (a real, currently-maintained Streamlit component - checked its PyPI listing and dependency list before adding it, not just its name): the customer sees a draggable box over their photo, can crop to just the garment they mean (free-form, not a fixed shape, since a top-crop and a bottom-crop are different shapes), previews the result, and only then does detection run. A "Use the full photo instead" option skips cropping for photos that already show one garment, and "Crop a different area" lets them redo it without re-uploading.
+
+**Checked before adding, not assumed:** `streamlit-cropper`'s only dependencies are `streamlit`, `Pillow`, and `numpy` - all already in this project's stack, so this doesn't add any new weight to the already-tight ~725MB/1GB memory budget the way a heavier component might have.
+
+**Verified with a real headless-browser test:** uploaded a real combo photo (`test_10_topAndJeans.jpg`, showing both a top and jeans), confirmed the crop box actually renders as a draggable overlay on the image (screenshotted, not just assumed from the code), clicked "Use this crop," and confirmed the flow correctly proceeds to the category/colour/style detection step afterward with no console errors.
+
 ### Next action
 
-Monica to push this live and retest the Try It On page - check that the three dropdowns appear correctly and that the catalog's Shop page shows visibly better colours (Light Green Blazer should now look genuinely different from Beige Blazer in the matches shown, for example). Streamlit Cloud auto-redeploys on every push to `main`. Also still pending: the earlier opencv-python-headless fix should be confirmed live if that hasn't been checked yet.
+Monica to push this live and retest the Try It On page - check the three dropdowns, the crop step on a combo/full-outfit photo, and that the Shop page shows visibly better colours (Light Green Blazer should now look genuinely different from Beige Blazer). Streamlit Cloud auto-redeploys on every push to `main`. Also still pending: confirm the earlier opencv-python-headless fix is live if that hasn't been checked yet.
 
 ---
 
