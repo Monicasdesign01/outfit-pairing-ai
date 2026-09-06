@@ -338,5 +338,155 @@
     "color": "white",
     "style": "fitted",
     "color_verified": true
+  },
+  {
+    "id": "cat_35",
+    "filename": "Kakhi_top.jpg",
+    "name": "Relaxed Linen Top",
+    "category": "top",
+    "price": 1299,
+    "color": "beige",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_36",
+    "filename": "Orange_kurti.jpg",
+    "name": "Embroidered Diamond Kurta",
+    "category": "kurta",
+    "price": 1799,
+    "color": "orange",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_37",
+    "filename": "Red_top.jpg",
+    "name": "Sequin Embellished Top",
+    "category": "top",
+    "price": 1599,
+    "color": "red",
+    "color_verified": true,
+    "style": "formal"
+  },
+  {
+    "id": "cat_38",
+    "filename": "Y2K_darksageGreen_kurti.jpg",
+    "name": "Mirror-Trim Cami Top",
+    "category": "top",
+    "price": 1199,
+    "color": "olive",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_39",
+    "filename": "beige_shorts.jpg",
+    "name": "Flowy Textured Shorts",
+    "category": "shorts",
+    "price": 1099,
+    "color": "beige",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_40",
+    "filename": "brown_pant.jpg",
+    "name": "Wide-Leg Pleated Pants",
+    "category": "pants",
+    "price": 2199,
+    "color": "brown",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_41",
+    "filename": "darkBrown_corset.jpg",
+    "name": "Brocade Corset Top",
+    "category": "top",
+    "price": 1899,
+    "color": "maroon",
+    "color_verified": true,
+    "style": "formal"
+  },
+  {
+    "id": "cat_42",
+    "filename": "green_miniskirt.jpg",
+    "name": "Floral Embroidered Mini Skirt",
+    "category": "skirt",
+    "price": 1699,
+    "color": "olive",
+    "color_verified": true,
+    "style": "formal"
+  },
+  {
+    "id": "cat_43",
+    "filename": "lightteal_corset.jpg",
+    "name": "Lace-Trim Corset Top",
+    "category": "top",
+    "price": 1799,
+    "color": "teal",
+    "color_verified": true,
+    "style": "formal"
+  },
+  {
+    "id": "cat_44",
+    "filename": "maroon_kurta.png",
+    "name": "Floral Embroidered Slip Dress",
+    "category": "dress",
+    "price": 2499,
+    "color": "maroon",
+    "color_verified": true,
+    "style": "formal"
+  },
+  {
+    "id": "cat_45",
+    "filename": "sageGreen_corsettop.jpg",
+    "name": "Lace-Up Corset Top",
+    "category": "top",
+    "price": 1599,
+    "color": "green",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_46",
+    "filename": "shorts.jpg",
+    "name": "Seersucker Striped Shorts",
+    "category": "shorts",
+    "price": 999,
+    "color": "blue",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_47",
+    "filename": "stripes_chinese_top.jpg",
+    "name": "Plaid Cheongsam Top",
+    "category": "shirt",
+    "price": 1899,
+    "color": "red",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_48",
+    "filename": "white_top.jpg",
+    "name": "Eyelet Peplum Top",
+    "category": "top",
+    "price": 1399,
+    "color": "white",
+    "color_verified": true,
+    "style": "fitted"
+  },
+  {
+    "id": "cat_49",
+    "filename": "yellow_top.jpg",
+    "name": "Textured Peplum Cami",
+    "category": "top",
+    "price": 1299,
+    "color": "yellow",
+    "color_verified": true,
+    "style": "formal"
   }
 ]
