@@ -192,9 +192,19 @@ Monica was clear the first version (solid-colour capsules) missed the actual poi
 
 **Files touched:** `mannequin_view.py` (rewritten: `resolve_body_visuals()` replaces the old colour-only `resolve_body_colors()`, `render_mannequin_html()` now builds a segmented figure with garment texture panels and a studio scene instead of three plain capsules), `shop_utils.py` (added `catalog_nobg_image_path()` to locate a catalog item's cached background-removed cutout), `matching_engine.py` (`analyze_uploaded_photo()` now keeps the uploaded item's cutout image bytes instead of deleting them, so the mannequin can reuse it without recomputing background removal), `app_pages/try_it_on.py` (added the match-selector dropdown, moved the mannequin preview after the category filter so it previews from the already-filtered list).
 
+### Catalog expanded again: 34 → 49 items — done, 2026-09-06
+
+Monica added 15 more real photos to `catalog_images/` (tops, a kurta, shorts, pants, a skirt, two corsets, and a slip dress). Same process as the 19-photo expansion on 2026-09-05: category/name/price assigned by hand, colour set by directly looking at each photo (not trusted to the automatic detector) and marked `color_verified: true` from the start, then `build_catalog_embeddings.py` run to compute embeddings and style only. One real filename-vs-content catch during review: `maroon_kurta.png` is actually a floral slip mini dress (a single complete garment), not a kurta (a tunic worn over separate bottoms) - catalogued as `"category": "dress"` to match what's actually in the photo. Re-ran the full matching pipeline against the new 49-item catalog afterward to confirm nothing broke.
+
+### Real deployment bug reported: ImportError on the mannequin_view import
+
+Monica saw `ImportError` at `app_pages/try_it_on.py` line 23 (`from mannequin_view import ...`) on the live Streamlit Cloud app, right after the Step 9 rebuild was pushed. Investigated properly rather than guessing: confirmed `mannequin_view.py` and `color_swatches.py` are both correctly committed and pushed at the exact commit the traceback's own line numbers match; confirmed all touched files compile cleanly (`python -m py_compile`); confirmed a completely fresh `import mannequin_view` succeeds locally with no errors. No actual bug found in the code itself.
+
+**Most likely explanation:** a Streamlit Cloud deploy-cache glitch - the platform doesn't always do a fully clean rebuild on every push, and new files added in the same push as an import of them can occasionally lag behind on the container's next boot. This is a known rough edge of the platform, not something fixable from the code side. The catalog expansion above was pushed as a separate commit right after this was found, which triggers a fresh redeploy and should resolve it on its own; if the same error still shows afterward, the fix is a manual "Reboot app" from Streamlit Cloud's "Manage app" panel (forces a completely clean checkout), not more code changes.
+
 ### Next action
 
-Monica to open the live app once this redeploys, try the flow end-to-end (including switching the "See it paired with" dropdown between a few different matches), and confirm the mannequin looks right on her own screen too. Remaining open item: Step 10 (code complete, needs Monica's real UPI VPA) - not blocking, the project is otherwise fully built out now (Steps 1 through 9 and 11 all done).
+Monica to check the live app after this next redeploy finishes. If the ImportError is still there, use "Manage app" → "Reboot app" on Streamlit Cloud rather than waiting - that forces a clean rebuild. Once confirmed working, try the flow end-to-end (including switching the "See it paired with" dropdown, and trying a few of the 15 new catalog items) and confirm the mannequin looks right. Remaining open item: Step 10 (code complete, needs Monica's real UPI VPA) - not blocking, the project is otherwise fully built out now (Steps 1 through 9 and 11 all done).
 
 ---
 ---
@@ -273,7 +283,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 2B | Background removal | done (plain u2netp version — segmentation abandoned, see Section 2) |
 | 3 | Garment classifier (CLIP) | done |
 | 3B | Accuracy check | done, real numbers in Section 2, needs README write-up eventually |
-| 4 | Build catalog.json + embeddings | done — 34 items: original 15 placeholder (reused test_images/ photos) + 19 real photos added 2026-09-05, see Section 2 |
+| 4 | Build catalog.json + embeddings | done — 49 items: original 15 placeholder (reused test_images/ photos) + 19 real photos added 2026-09-05 + 15 more real photos added 2026-09-06, see Section 2/11 |
 | 5 | Matching engine (classify to filter to retrieve to re-rank) | done — the intellectual core, tested end-to-end on two real cases |
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
 | 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
