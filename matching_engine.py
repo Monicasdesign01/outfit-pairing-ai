@@ -10,7 +10,7 @@ import numpy as np
 import faiss
 
 from remove_background import remove_background
-from classify_garment import classify_garment, get_image_embedding
+from classify_garment import classify_from_embedding, get_image_embedding
 from color_detector import get_dominant_color, closest_color_name
 from pairing_rules import (
     CATEGORY_LABELS,
@@ -18,21 +18,24 @@ from pairing_rules import (
     get_paired_categories,
     color_score,
     silhouette_score,
+    explain_color_relationship,
+    explain_silhouette_relationship,
 )
 
 CATALOG_JSON = "catalog.json"
 CATALOG_EMBEDDINGS_FILE = "catalog_embeddings.npz"
 
 
-def classify_uploaded_item(image_path):
+def classify_uploaded_item(embedding):
     """
-    Step 5.1 - Classify. Reuses Step 3's CLIP zero-shot classifier
-    (classify_garment), scored against one prompt per catalog category
-    (pairing_rules.CATEGORY_LABELS) so the result maps straight onto a
-    real catalog category.
+    Step 5.1 - Classify. Reuses Step 3's CLIP zero-shot classifier, scored
+    against one prompt per catalog category (pairing_rules.CATEGORY_LABELS)
+    so the result maps straight onto a real catalog category. Takes an
+    already-computed image embedding so the photo is only encoded once per
+    upload (see classify_garment.classify_from_embedding).
     """
     labels = list(CATEGORY_LABELS.values())
-    results = classify_garment(image_path, labels)
+    results = classify_from_embedding(embedding, labels)
     top_label, confidence = results[0]
 
     # results gives us the winning CLIP prompt text; map it back to the
@@ -121,10 +124,11 @@ def retrieve_candidates(uploaded_embedding, allowed_categories, indices_by_categ
     return candidates
 
 
-def classify_uploaded_style(image_path):
-    """Same idea as classify_uploaded_item, but for style rather than category."""
+def classify_uploaded_style(embedding):
+    """Same idea as classify_uploaded_item, but for style rather than
+    category - and reusing the same single image embedding."""
     labels = list(STYLE_LABELS.values())
-    results = classify_garment(image_path, labels)
+    results = classify_from_embedding(embedding, labels)
     top_label, confidence = results[0]
     label_to_style_name = {v: k for k, v in STYLE_LABELS.items()}
     return label_to_style_name[top_label]
@@ -154,11 +158,19 @@ def rerank(candidates, uploaded_color, uploaded_style):
 
         # color_score/silhouette_score max out at 2, so /2 puts every
         # signal on the same 0-1 scale before weighting.
-        candidate["final_score"] = (
-            SIMILARITY_WEIGHT * candidate["similarity"]
-            + COLOR_WEIGHT * (c_score / 2)
-            + STYLE_WEIGHT * (s_score / 2)
-        )
+        contributions = {
+            "visual similarity": SIMILARITY_WEIGHT * candidate["similarity"],
+            "colour pairing": COLOR_WEIGHT * (c_score / 2),
+            "silhouette balance": STYLE_WEIGHT * (s_score / 2),
+        }
+
+        # Kept rather than discarded so the app can show *why* a match
+        # ranked where it did, instead of presenting the order as a
+        # black box the customer has to take on trust.
+        candidate["score_breakdown"] = contributions
+        candidate["color_relationship"] = explain_color_relationship(uploaded_color, candidate["color"])
+        candidate["style_relationship"] = explain_silhouette_relationship(uploaded_style, candidate["style"])
+        candidate["final_score"] = sum(contributions.values())
 
     return sorted(candidates, key=lambda c: c["final_score"], reverse=True)
 
@@ -186,28 +198,35 @@ def analyze_uploaded_photo(image_path):
     t_bg = time.time()
     print(f"[TIMING] background removal: {t_bg - t_start:.2f}s")
 
-    category, _ = classify_uploaded_item(nobg_path)
-    t_classify = time.time()
-    print(f"[TIMING] classify category (CLIP): {t_classify - t_bg:.2f}s")
-
+    # The photo is encoded by CLIP exactly once here. Category and style
+    # are then both scored against that same embedding, and it doubles as
+    # the FAISS query vector - so one forward pass serves all three uses.
+    # The earlier version ran a separate full model pass per label set,
+    # which meant encoding the identical photo three times (measured at
+    # ~12s of a ~15s upload).
     uploaded_embedding = get_image_embedding(nobg_path)
     t_embed = time.time()
-    print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_classify:.2f}s")
+    print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_bg:.2f}s")
+
+    category, category_confidence = classify_uploaded_item(uploaded_embedding)
+    t_classify = time.time()
+    print(f"[TIMING] classify category (cached text embeddings): {t_classify - t_embed:.2f}s")
 
     uploaded_rgb = get_dominant_color(nobg_path)
     uploaded_color = closest_color_name(uploaded_rgb)
     t_color = time.time()
-    print(f"[TIMING] color detection: {t_color - t_embed:.2f}s")
+    print(f"[TIMING] color detection: {t_color - t_classify:.2f}s")
 
-    uploaded_style = classify_uploaded_style(nobg_path)
+    uploaded_style = classify_uploaded_style(uploaded_embedding)
     t_style = time.time()
-    print(f"[TIMING] classify style (CLIP): {t_style - t_color:.2f}s")
+    print(f"[TIMING] classify style (cached text embeddings): {t_style - t_color:.2f}s")
 
     os.remove(nobg_path)
     print(f"[TIMING] analyze_uploaded_photo TOTAL: {t_style - t_start:.2f}s")
 
     return {
         "category": category,
+        "category_confidence": category_confidence,
         "color": uploaded_color,
         "style": uploaded_style,
         "embedding": uploaded_embedding,

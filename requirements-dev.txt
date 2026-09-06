@@ -1,0 +1,4 @@
+# Development/testing only - deliberately NOT in requirements.txt, which
+# is what Streamlit Cloud installs. Nothing here ships to the deployed app.
+-r requirements.txt
+pytest==8.4.2

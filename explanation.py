@@ -12,7 +12,11 @@ a live demo never breaks because of a third-party API.
 
 import os
 
-from pairing_rules import explain_color_relationship, explain_silhouette_relationship
+from pairing_rules import (
+    PLURAL_CATEGORIES,
+    explain_color_relationship,
+    explain_silhouette_relationship,
+)
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
@@ -32,10 +36,11 @@ SILHOUETTE_PHRASES = {
 
 
 def _subject_phrase(category):
-    """'jeans' is the only plural-only noun in CATEGORY_LABELS, so it
-    needs 'These jeans pair' rather than 'This jeans pairs'."""
-    if category == "jeans":
-        return "These jeans", "pair"
+    """Plural-only garments need 'These jeans pair' rather than 'This
+    jeans pairs' - and that's true of pants and shorts too, not just
+    jeans, which an earlier version missed."""
+    if category in PLURAL_CATEGORIES:
+        return f"These {category}", "pair"
     return f"This {category}", "pairs"
 
 

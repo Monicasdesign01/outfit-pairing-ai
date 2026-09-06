@@ -73,6 +73,14 @@ CHROMATIC_FAMILIES = {
 # plus the "beige" special case below).
 NEUTRAL_SATURATION_THRESHOLD = 0.08
 
+# Where an unsaturated colour stops being called grey and starts being
+# called white. Set from measurement, not by eye: across the catalog's
+# real photos a genuinely grey top measures v=0.608 while genuinely white
+# shirts measure v=0.706 and v=0.824, so the boundary has to sit between
+# those. Values either side were tried and scored with evaluate.py - 0.55
+# called the grey top white, and 0.85 called both white shirts grey.
+WHITE_BRIGHTNESS_THRESHOLD = 0.65
+
 # Every string closest_color_name() can possibly return - the single
 # source of truth for anything that needs to enumerate valid color
 # names (e.g. a dropdown of options). "beige" is a real return value
@@ -98,12 +106,18 @@ def closest_color_name(rgb):
         return "black"
 
     if s < NEUTRAL_SATURATION_THRESHOLD:
-        is_warm = h_deg < 70 or h_deg >= 330
-        if v < 0.55:
-            return "gray"
-        if is_warm and v < 0.85:
+        # Hue is meaningless once saturation is essentially zero: a pure
+        # gray (R=G=B) reports hue 0, which reads as "warm" numerically
+        # but obviously isn't. Requiring a trace of real saturation stops
+        # every mid-to-light neutral gray being called beige - found by a
+        # test asserting the gray reference swatch names itself, which it
+        # did not.
+        is_warm = (h_deg < 70 or h_deg >= 330) and s > 0.02
+        if is_warm and 0.5 <= v < 0.85:
             return "beige"
-        return "white"
+        if v >= WHITE_BRIGHTNESS_THRESHOLD:
+            return "white"
+        return "gray"
 
     # The color has real hue content - match it only against other
     # colors, never against gray/white/black (see comment above on why

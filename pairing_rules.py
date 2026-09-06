@@ -42,6 +42,19 @@ CATEGORY_LABELS = {
 BOTTOMS = {"jeans", "skirt", "pants", "shorts"}
 TOPS = {"top", "shirt", "kurta", "hoodie"}
 
+# Grammatically plural-only garments: "these jeans pair", never "this
+# jeans pairs". Kept here with the rest of the category vocabulary so the
+# explanation text and the app's own copy can't disagree about it.
+PLURAL_CATEGORIES = {"jeans", "pants", "shorts"}
+
+
+def describe_category(category, article=True):
+    """Category name as it should read in a sentence - 'jeans' or 'a
+    skirt'. Without an article: 'jeans' / 'skirt'."""
+    if not article or category in PLURAL_CATEGORIES:
+        return category
+    return f"an {category}" if category[0] in "aeiou" else f"a {category}"
+
 PAIRING_RULES = {
     **{bottom: TOPS | {"blazer"} for bottom in BOTTOMS},
     **{top: BOTTOMS | {"blazer"} for top in TOPS},

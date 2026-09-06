@@ -5,22 +5,30 @@ in plain text, before any visual layer (Step 8) gets built on top.
 """
 
 import os
-from matching_engine import find_matches
+import sys
+
+# Run from the project root (`python scripts/smoke_test_pipeline.py`):
+# Python puts this script's own folder on the path, not the project root,
+# so the project's modules and its relative data paths need pointing at.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
+
+from matching_engine import find_matches  # noqa: E402
 
 TEST_IMAGES_DIR = "test_images"
 
 
 def gather_upload_paths():
-    """Every numbered test photo, plus the two leftover generic photos
-    that were never copied into the catalog - genuinely 'new' uploads
-    the pipeline hasn't seen as a catalog item."""
-    paths = []
-    for filename in sorted(os.listdir(TEST_IMAGES_DIR)):
-        if filename.lower().endswith((".jpg", ".jpeg", ".png")):
-            paths.append(os.path.join(TEST_IMAGES_DIR, filename))
-    paths.append("test.jpg")
-    paths.append("test2.jpg")
-    return paths
+    """Every photo in test_images/. Two extra ad-hoc photos (test.jpg,
+    test2.jpg) used to be appended here, but they are gitignored scratch
+    files that don't exist in a fresh clone - so anyone else running this
+    got two guaranteed failures that looked like real pipeline bugs."""
+    return [
+        os.path.join(TEST_IMAGES_DIR, filename)
+        for filename in sorted(os.listdir(TEST_IMAGES_DIR))
+        if filename.lower().endswith((".jpg", ".jpeg", ".png"))
+    ]
 
 
 def run():

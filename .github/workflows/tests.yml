@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 3.12 to match what Streamlit Community Cloud runs, so a
+      # dependency that resolves here is one that resolves there.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Installing the real requirements.txt (not a trimmed-down test-only
+      # list) is deliberate: it means CI fails on a broken dependency
+      # before the deployed app does. Two real outages would have been
+      # caught here - a torch version that only existed on PyTorch's own
+      # wheel index, and opencv-python needing system graphics libraries
+      # that a server doesn't have.
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      # Importing on Linux catches the "works on my Windows machine but
+      # not on the server" class of failure. Modules that download CLIP on
+      # import are left out on purpose to keep CI fast.
+      - name: Check modules import on a clean Linux machine
+        run: python -c "import color_detector, pairing_rules, shop_utils, explanation; print('imports OK')"
+
+      - name: Run tests
+        run: pytest tests/ -q
