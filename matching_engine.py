@@ -14,7 +14,10 @@ from classify_garment import classify_from_embedding, get_image_embedding
 from color_detector import get_dominant_color, closest_color_name
 from pairing_rules import (
     CATEGORY_LABELS,
+    COLOR_WEIGHT,
+    SIMILARITY_WEIGHT,
     STYLE_LABELS,
+    STYLE_WEIGHT,
     get_paired_categories,
     color_score,
     silhouette_score,
@@ -132,18 +135,6 @@ def classify_uploaded_style(embedding):
     top_label, confidence = results[0]
     label_to_style_name = {v: k for k, v in STYLE_LABELS.items()}
     return label_to_style_name[top_label]
-
-
-# How much each signal counts toward the final ranking. Visual similarity
-# carries the most weight since it's what FAISS already retrieved on.
-# Colour outweighs style/silhouette deliberately: Step 3B's accuracy
-# check found CLIP's style classification measurably weaker than type
-# classification (~10/15 vs ~12/15) with a known bias toward over-
-# predicting "formal" - so the less reliable signal is weighted lower
-# rather than trusted equally.
-SIMILARITY_WEIGHT = 0.5
-COLOR_WEIGHT = 0.35
-STYLE_WEIGHT = 0.15
 
 
 def rerank(candidates, uploaded_color, uploaded_style):

@@ -103,6 +103,22 @@ ANALOGOUS_PAIRS = {
 }
 
 
+# How much each signal counts toward the final ranking. Visual similarity
+# carries the most weight since it's what FAISS already retrieved on.
+# Colour outweighs style/silhouette deliberately: Step 3B's accuracy
+# check found CLIP's style classification measurably weaker than type
+# classification (~10/15 vs ~12/15) with a known bias toward over-
+# predicting "formal" - so the less reliable signal is weighted lower
+# rather than trusted equally.
+#
+# These live here, next to the scoring functions they weight, so anything
+# that needs them (the matching engine, the outfit builder) can use the
+# same numbers without importing the CLIP-loading modules.
+SIMILARITY_WEIGHT = 0.5
+COLOR_WEIGHT = 0.35
+STYLE_WEIGHT = 0.15
+
+
 def color_score(color_a, color_b):
     """
     Higher is better. 2 = complementary, 1 = analogous or a neutral

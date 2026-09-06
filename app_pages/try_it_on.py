@@ -20,6 +20,7 @@ from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
 from pairing_rules import CATEGORY_LABELS, STYLE_LABELS, describe_category
 from color_detector import ALL_COLOR_NAMES
+from outfit_builder import build_outfit
 
 CATEGORY_OPTIONS = sorted(CATEGORY_LABELS.keys())
 # ALL_COLOR_NAMES is color_detector.py's own single source of truth for
@@ -225,6 +226,33 @@ if uploaded_file is not None:
                         with match_col:
                             st.image(catalog_image_path(preview_match), width="stretch")
                             st.caption(f"{preview_match['name']} — ₹{preview_match['price']}")
+
+                # A single complementary item usually isn't an outfit -
+                # jeans plus a shirt still needs a layer. This assembles a
+                # whole look from the same ranked candidates.
+                outfit = build_outfit(result["category"], filtered_matches)
+                if outfit:
+                    st.markdown("##### Complete the look")
+                    st.caption(
+                        "Each piece is scored against the ones already chosen, not just against "
+                        "your upload, so the outfit holds together as a whole."
+                    )
+                    with st.container(border=True):
+                        pieces = st.columns(len(outfit) + 1)
+                        with pieces[0]:
+                            st.image(st.session_state["uploaded_preview"], width="stretch")
+                            st.caption(f"**Yours** — {describe_category(result['category'])}, {result['color']}")
+                        for column, piece in zip(pieces[1:], outfit):
+                            with column:
+                                st.image(catalog_image_path(piece), width="stretch")
+                                st.caption(
+                                    f"**{piece['slot'].title()}** — {piece['name']}  \n"
+                                    f"₹{piece['price']:,} · fits the look {piece['cohesion']:.2f}"
+                                )
+                        st.markdown(
+                            f"**Outfit total: ₹{sum(p['price'] for p in outfit):,}** "
+                            f"across {len(outfit)} item(s) plus your own piece."
+                        )
 
                 st.markdown(f"##### {len(filtered_matches)} matching item(s)")
 
