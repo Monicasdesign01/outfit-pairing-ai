@@ -40,8 +40,8 @@ An LLM only writes the *explanation text* for a match that's already been decide
   - Crop it down to just the one garment, if the photo shows a full outfit
   - Review the detected category / colour / style, and correct anything the model got wrong
   - Get ranked matches with a plain-language explanation for each
-  - Preview the outfit on a 3D mannequin, coloured to match
   - Filter results by category
+  - Preview any of the matches on a studio-lit 3D mannequin, wearing your actual uploaded photo
   - Buy button on every match, via a UPI payment link
 
 ---

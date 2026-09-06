@@ -203,6 +203,13 @@ def analyze_uploaded_photo(image_path):
     t_style = time.time()
     print(f"[TIMING] classify style (CLIP): {t_style - t_color:.2f}s")
 
+    # Kept in memory (not just the color/embedding derived from it)
+    # so the mannequin preview (Step 9) can show the actual garment
+    # cutout instead of just a flat colour - read before the temp file
+    # is deleted since nothing after this point needs it on disk.
+    with open(nobg_path, "rb") as f:
+        nobg_image_bytes = f.read()
+
     os.remove(nobg_path)
     print(f"[TIMING] analyze_uploaded_photo TOTAL: {t_style - t_start:.2f}s")
 
@@ -211,6 +218,7 @@ def analyze_uploaded_photo(image_path):
         "color": uploaded_color,
         "style": uploaded_style,
         "embedding": uploaded_embedding,
+        "nobg_image_bytes": nobg_image_bytes,
     }
 
 
