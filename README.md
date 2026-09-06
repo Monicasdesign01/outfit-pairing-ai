@@ -4,7 +4,7 @@ A concept e-commerce app that pairs a customer's own clothing photo with complem
 
 Built as a portfolio project to learn and demonstrate a real recommendation-system pipeline: classification, embeddings, filtering, similarity retrieval, and rule-based re-ranking, wired up end to end in a working app.
 
-**Live app:** https://outfit-pairing-ai-avl2sgons76apxhjstyfrw.streamlit.app/
+**Live app:** https://outfit-pairing-ai-avl2sgons76apxhjstyfrw.streamlit.app
 
 ---
 
