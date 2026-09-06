@@ -12,7 +12,11 @@ Built as a portfolio project to learn and demonstrate a real recommendation-syst
 |---|---|
 | ![Detected attributes](docs/screenshots/detected.png) | ![Ranked matches](docs/screenshots/matches.png) |
 
-Every ranking is inspectable — the weighted score behind each match is shown rather than hidden:
+It builds a whole outfit, not just one pairing — each added piece is scored against the pieces already chosen:
+
+![Complete the look](docs/screenshots/complete_the_look.png)
+
+And every ranking is inspectable — the weighted score behind each match is shown rather than hidden:
 
 ![Score breakdown](docs/screenshots/score_breakdown.png)
 

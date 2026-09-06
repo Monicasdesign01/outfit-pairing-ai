@@ -245,9 +245,18 @@ if uploaded_file is not None:
                         for column, piece in zip(pieces[1:], outfit):
                             with column:
                                 st.image(catalog_image_path(piece), width="stretch")
+                                # Cohesion is 0 for the first piece by
+                                # definition (nothing to cohere with yet),
+                                # so showing "0.00" there would read as a
+                                # bad score rather than an absent one.
+                                reason = (
+                                    f"works with the {outfit[0]['category']} too"
+                                    if piece["cohesion"] > 0
+                                    else "best match for your piece"
+                                )
                                 st.caption(
                                     f"**{piece['slot'].title()}** — {piece['name']}  \n"
-                                    f"₹{piece['price']:,} · fits the look {piece['cohesion']:.2f}"
+                                    f"₹{piece['price']:,} · {reason}"
                                 )
                         st.markdown(
                             f"**Outfit total: ₹{sum(p['price'] for p in outfit):,}** "

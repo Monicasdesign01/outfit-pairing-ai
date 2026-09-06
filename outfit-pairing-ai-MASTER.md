@@ -263,6 +263,14 @@ Deliberately greedy rather than searching every combination - at this catalog si
 
 The scoring weights moved from `matching_engine.py` into `pairing_rules.py`, next to the scoring functions they weight, so the outfit builder uses the same numbers without importing the CLIP-loading modules - which is also what keeps the new tests fast enough for CI.
 
+### ⚠️ Needs Monica's decision: a watermarked catalog image — found 2026-09-06
+
+`catalog_images/beige_blazer.jpg` (`cat_19`, "Beige Blazer") has a visible **iStock watermark** ("iStock / Credit: ta-nya") burned into it. Spotted while reviewing a screenshot of the new outfit feature, where that blazer happened to be picked.
+
+This matters for two reasons, neither of them cosmetic: Section 7's known risks already state the rule for this project ("Catalog image copyright - use Unsplash/Pexels or Monica's own photos, not scraped brand photos"), and a visible stock-agency watermark on a portfolio project is the kind of detail a reviewer notices immediately.
+
+**Not changed without asking**, since replacing or deleting Monica's own catalog data is her call. Options: swap in a freely-licensed replacement photo (Unsplash/Pexels) and re-run `build_catalog_embeddings.py`, or remove `cat_19` from `catalog.json` entirely. Worth a quick check of the other catalog photos for the same issue at the same time.
+
 ### Next action
 
 Monica to check the live app once this redeploys: the new theme and card layout, the confidence message, and the "why this ranked here" breakdown under each match. Two things worth knowing for interviews, since they're the strongest material here: the project can now *prove* its accuracy with `python evaluate.py` (and that harness immediately corrected two numbers that had been quoted from smaller, easier subsets), and the upload latency work came from profiling rather than guesswork - three redundant CLIP passes down to one, 14.8s to 3.2s warm.
