@@ -20,6 +20,7 @@ from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
 from pairing_rules import CATEGORY_LABELS, STYLE_LABELS
 from color_detector import ALL_COLOR_NAMES
+from mannequin_view import render_mannequin_html, resolve_body_colors
 
 CATEGORY_OPTIONS = sorted(CATEGORY_LABELS.keys())
 # ALL_COLOR_NAMES is color_detector.py's own single source of truth for
@@ -148,6 +149,13 @@ if uploaded_file is not None:
             if not result["matches"]:
                 st.info("No catalog items pair with this category yet.")
             else:
+                st.subheader("Preview on a mannequin")
+                top_match = result["matches"][0]
+                torso_color, legs_color = resolve_body_colors(
+                    result["category"], result["color"], top_match["category"], top_match["color"]
+                )
+                st.components.v1.html(render_mannequin_html(torso_color, legs_color), height=430)
+
                 categories_present = sorted({m["category"] for m in result["matches"]})
                 selected_categories = st.multiselect(
                     "Filter by category", options=categories_present, default=categories_present

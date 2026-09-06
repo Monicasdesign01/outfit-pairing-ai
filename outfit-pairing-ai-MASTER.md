@@ -163,9 +163,21 @@ Monica tried the crop feature and hit a `ValueError` crash on `COLOR_OPTIONS.ind
 
 Monica confirmed the beige fix works live and asked to move to the next step. Wrote `README.md` at the project root: overview, live-demo link placeholder (Monica to paste the actual Streamlit Cloud URL in), two Mermaid architecture diagrams (classify→filter→retrieve→re-rank, and a more detailed upload→analyze→match→explain flow — GitHub renders Mermaid natively, no extra tooling), a tech-stack table pulled from Section 8's reasoning, an honest known-limitations section (the colour-detection ceiling and the human-in-the-loop fix, CLIP accuracy numbers, placeholder catalog/UPI data, the memory risk), local setup instructions, and a project-structure tree confirmed against the actual repo (not guessed) via `ls`.
 
+### Step 9 — 3D mannequin (stretch) — done, 2026-09-06
+
+Monica chose Step 9 over finishing Step 10 (which needs her real UPI ID) or stopping. Built as originally scoped in Section 12 (Three.js + a mannequin figure with a flat colour overlay, not real cloth simulation), but with one deliberate change from the original plan: the figure is built entirely out of basic Three.js shapes (sphere head, capsule torso/arms/legs) in the browser, not loaded from a downloaded `.glTF` model file. This means it costs zero extra Python/server memory - a real consideration given the already-tight ~725MB/1GB Streamlit Cloud budget (Section 7) - since the whole thing runs client-side in the visitor's browser via JavaScript.
+
+**What it does:** after a match is found, a "Preview on a mannequin" section shows a simple humanoid coloured using the uploaded item's colour and the top match's colour - whichever is the top goes on the torso/arms, whichever is the bottom goes on the legs (`mannequin_view.resolve_body_colors()`, using the existing `TOPS`/`BOTTOMS` sets from `pairing_rules.py` so it can't drift out of sync with the pairing rules themselves). A dress colours the whole figure. It auto-rotates and can be dragged.
+
+**New files:** `color_swatches.py` (a representative RGB swatch for every name `color_detector.closest_color_name()` can return, reusing its existing reference values rather than a separate palette - has an assert that fails loudly at import time if it ever falls out of sync with `color_detector.ALL_COLOR_NAMES`, learned from the real "beige" dropdown crash earlier this session) and `mannequin_view.py` (the HTML/Three.js generation and the colour-role logic).
+
+**Verified with a real headless-browser test, not assumed:** ran the full upload flow against the actually-running app (jeans photo → detected navy jeans → top match "Everyday Cotton Shirt", white) and confirmed via screenshot that the figure renders with dark navy legs and a light torso. Also isolated the HTML generation itself in a standalone browser test outside Streamlit to confirm the colour values reaching Three.js were exactly right (`0xf0f0f0` for white, `0x141e50` for navy) - the torso reading as more gray than pure white in the screenshot is expected directional-lighting shading on a curved white surface, not a colour bug.
+
+**No new Python dependency added** - Three.js loads from a CDN directly in the browser, so `requirements.txt` is unchanged.
+
 ### Next action
 
-Monica to fill in the live Streamlit Cloud URL in `README.md` where it says "add your Streamlit Community Cloud URL here." After that, Step 11 is fully done. Remaining open items are Step 9 (optional stretch, not started) and Step 10 (code complete, needs Monica's real UPI VPA) — neither is blocking; the project is in a genuinely presentable state now.
+Monica to open the live app, try the flow end-to-end, and confirm the mannequin preview looks right on her own screen too (colours, rotation/drag). Remaining open item: Step 10 (code complete, needs Monica's real UPI VPA) - not blocking, the project is otherwise fully built out now (Steps 1 through 9 and 11 all done).
 
 ---
 ---
@@ -250,7 +262,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
 | 8 | Streamlit app — Shop, Try It On, category filter | done — built, verified with a real browser test, and the explanation-generation performance issue fixed (top-3-live-explanations cap, see Section 2/11) |
 | 8B | Deploy free on Streamlit Community Cloud | done — live on Streamlit Community Cloud, three real deployment bugs found and fixed via live testing (opencv-python-headless, catalog colours, the "beige" dropdown crash), see Section 11 |
-| 9 | Stretch — 3D mannequin | not started (explicitly optional) |
+| 9 | Stretch — 3D mannequin | done — procedural Three.js figure (no downloaded model file, zero extra memory weight), colours itself from the uploaded item + top match, see Section 11 |
 | 10 | Optional — UPI buy link | code done (`shop_utils.py`, `build_upi_link()`), placeholder VPA - needs Monica's real UPI ID to go live, not an engineering task |
 | 11 | README + architecture diagram | in progress |
 
@@ -521,7 +533,7 @@ Monica asked the obvious, better question after the ceiling was demonstrated: "c
 | 7 | Generate a plain-language reason for each match | Google Gemini (`gemini-3.5-flash-lite`) via `google-genai` + a hand-written template fallback | Chosen after checking current free-tier options rather than from memory; the fallback avoids a live demo failing if the API is down or rate-limited. Confirmed working with a real key 2026-09-04 (after fixing one real model-name drift: `2.5-flash-lite` was retired mid-project in favor of `3.5-flash-lite`) |
 | 8 | User-facing app: Shop page + Try It On page | Streamlit (`st.Page`/`st.navigation`), verified with Playwright (dev-only, not a project dependency) | Keeps the whole interface in Python; deliberately simpler than a hand-built React/Flask site so effort stays on the AI pipeline. Real finding: sequential Gemini explanation calls per upload are slow (~90% of total time on a 9-match upload), likely rate-limiting - unresolved |
 | 8B | Put the app online with a public link | Streamlit Community Cloud (free tier, confirmed 1GB RAM limit) | Free hosting. Real measured peak usage: 725.6MB during a single minimal upload - a genuine risk, not just a checkbox; mitigation if deployment fails is a smaller CLIP variant or optional background removal, not more debugging |
-| 9 (stretch) | Show the outfit on a 3D figure | Three.js + a free `.glTF` mannequin, flat texture overlay | Real cloth simulation is specialist paid software; this gets visual impact without that cost |
+| 9 (stretch) | Show the outfit on a 3D figure | Three.js, procedural humanoid (no `.glTF` file), coloured from the match result, embedded via `st.components.v1.html` | Real cloth simulation is specialist paid software; this gets visual impact without that cost. Built from primitives instead of a downloaded model file specifically to add zero weight to the tight Streamlit Cloud memory budget (Section 7) — it renders entirely client-side in the browser |
 | 10 (optional) | Let a few real people buy an item | A UPI payment link, manual order tracking | A full payment gateway is unnecessary overhead for 2–10 manual orders |
 | 11 | Document the project | Markdown README, architecture diagram | Most recruiters spend under a minute on a repo — this is the highest-value hour in the project |
 
