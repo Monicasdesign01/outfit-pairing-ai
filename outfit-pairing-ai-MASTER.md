@@ -317,6 +317,7 @@ This is the intellectual core of the project and the single best thing to explai
 6. **Colour-theory rules will need hand-tuning** — expected, not yet encountered since Step 5 hasn't started.
 7. **NEW — garment segmentation for on-body photos was attempted and abandoned.** See Section 2 for full detail. Plain background removal is used for all photos going forward; some color-detection imprecision on garments where skin/hair are visible in the photo is accepted as a documented limitation rather than solved.
 8. **NEW — PowerShell `>` file redirection corrupts `.py` files** (UTF-16 BOM). Always create/recreate Python files through VS Code directly.
+9. **NEW — Streamlit Community Cloud puts an app to sleep after ~7 days with no visitors.** Hosting itself doesn't expire, but a sleeping app shows a "wake it back up" screen and takes 30-60s to restart on the next visit. Worth opening the live link yourself right before sharing it (e.g. before an interview) so it's already awake.
 
 ---
 
