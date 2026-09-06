@@ -216,7 +216,9 @@ Monica sent two reference images: a photorealistic CGI mannequin render, and a s
 
 ### Next action
 
-Monica to check the live app after this redeploys and confirm the new outfit-pairing card looks right (and that the earlier ImportError is gone now that a clean redeploy has happened). Separately: an investigation is underway into whether a dedicated garment-segmentation model could cleanly extract just the garment from a photo (for potential future use), building on the finding above - results to be added here once tested. Remaining open item: Step 10 (code complete, needs Monica's real UPI VPA) - not blocking.
+Monica to check the live app after this redeploys and confirm the new outfit-pairing card looks right (and that the earlier ImportError is gone now that a clean redeploy has happened). Separately: an investigation is underway into whether a dedicated garment-segmentation model could cleanly extract just the garment from a photo (for potential future use), building on the finding above - results to be added here once tested.
+
+**Step 10 closed, 2026-09-06:** Monica confirmed she wants to keep the UPI ID as the placeholder deliberately - the "Buy" button's slowness on desktop was explained (it's a `upi://pay` deep link, which only phone UPI apps can handle; a desktop browser has nothing to hand it to, hence the delay), and once she understood that, she chose not to swap in her real UPI ID. This is a final decision, not an open TODO - don't re-raise it.
 
 ---
 ---
@@ -302,7 +304,7 @@ This is the intellectual core of the project and the single best thing to explai
 | 8 | Streamlit app — Shop, Try It On, category filter | done — built, verified with a real browser test, and the explanation-generation performance issue fixed (top-3-live-explanations cap, see Section 2/11) |
 | 8B | Deploy free on Streamlit Community Cloud | done — live on Streamlit Community Cloud, three real deployment bugs found and fixed via live testing (opencv-python-headless, catalog colours, the "beige" dropdown crash), see Section 11 |
 | 9 | Stretch — outfit preview | done — pivoted away from 3D entirely after Monica compared it to professional CGI (CLO3D) and found it unacceptable; replaced with a 2D "outfit pairing" card (real photos side by side, no mannequin body), see Section 11 |
-| 10 | Optional — UPI buy link | code done (`shop_utils.py`, `build_upi_link()`), placeholder VPA - needs Monica's real UPI ID to go live, not an engineering task |
+| 10 | Optional — UPI buy link | done — code complete (`shop_utils.py`, `build_upi_link()`); Monica has decided to deliberately keep `MERCHANT_UPI_ID` as the placeholder `"yourupi@upi"` rather than use her real UPI ID (2026-09-06) - not a TODO, don't prompt her to swap it in |
 | 11 | README + architecture diagram | in progress |
 
 ---
