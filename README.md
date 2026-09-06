@@ -41,7 +41,7 @@ An LLM only writes the *explanation text* for a match that's already been decide
   - Review the detected category / colour / style, and correct anything the model got wrong
   - Get ranked matches with a plain-language explanation for each
   - Filter results by category
-  - Preview any of the matches on a studio-lit 3D mannequin, wearing your actual uploaded photo
+  - Preview any of the matches as a styled outfit pairing card, side by side with your own upload
   - Buy button on every match, via a UPI payment link
 
 ---
@@ -135,8 +135,6 @@ app_pages/
 matching_engine.py            # classify -> filter -> retrieve -> re-rank pipeline
 pairing_rules.py              # Category pairing rules, colour/silhouette scoring
 color_detector.py             # k-means dominant colour + colour naming
-color_swatches.py             # Colour name -> RGB swatch, for the mannequin preview
-mannequin_view.py             # Procedural Three.js mannequin (Step 9)
 classify_garment.py           # CLIP zero-shot category/style classification
 remove_background.py          # rembg background removal
 explanation.py                # Gemini call + template fallback for match text

@@ -20,7 +20,6 @@ from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
 from pairing_rules import CATEGORY_LABELS, STYLE_LABELS
 from color_detector import ALL_COLOR_NAMES
-from mannequin_view import render_mannequin_html, resolve_body_visuals, image_bytes_to_data_uri
 
 CATEGORY_OPTIONS = sorted(CATEGORY_LABELS.keys())
 # ALL_COLOR_NAMES is color_detector.py's own single source of truth for
@@ -158,27 +157,24 @@ if uploaded_file is not None:
                 filtered_matches.sort(key=lambda m: m["final_score"], reverse=True)
 
                 if filtered_matches:
-                    st.subheader("Preview on a mannequin")
+                    st.subheader("Outfit preview")
                     preview_options = {f"{m['name']} (₹{m['price']})": m for m in filtered_matches}
                     preview_label = st.selectbox("See it paired with:", list(preview_options.keys()))
                     preview_match = preview_options[preview_label]
 
-                    # Only the customer's own upload gets textured with its
-                    # real photo - they just cropped it themselves, so it's a
-                    # clean garment-only cutout. The catalog match instead
-                    # gets a plain colour panel: catalog photos are lifestyle
-                    # shots (a model wearing the whole outfit, often with a
-                    # bag or holding a phone), and background removal only
-                    # strips the plain backdrop, not those extra elements -
-                    # texturing them onto the mannequin looked like a messy
-                    # collage in testing (see Section 11), not a clean match.
-                    uploaded_image_data_uri = image_bytes_to_data_uri(detected["nobg_image_bytes"])
-
-                    visuals = resolve_body_visuals(
-                        result["category"], result["color"], uploaded_image_data_uri,
-                        preview_match["category"], preview_match["color"], None,
-                    )
-                    st.components.v1.html(render_mannequin_html(visuals), height=480)
+                    with st.container(border=True):
+                        img_col, plus_col, match_col = st.columns([1, 0.2, 1])
+                        with img_col:
+                            st.image(st.session_state["uploaded_preview"], use_container_width=True)
+                            st.caption(f"Your {result['category']} — {result['color']}")
+                        with plus_col:
+                            st.markdown(
+                                "<div style='text-align:center; font-size:2rem; padding-top:2.5rem;'>+</div>",
+                                unsafe_allow_html=True,
+                            )
+                        with match_col:
+                            st.image(catalog_image_path(preview_match), use_container_width=True)
+                            st.caption(f"{preview_match['name']} — ₹{preview_match['price']}")
 
                 st.subheader(f"{len(filtered_matches)} matching item(s)")
 
