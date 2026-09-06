@@ -247,6 +247,22 @@ Monica asked for changes that would make the project stand out to someone review
 
 **The README was rewritten around the measured numbers**, since that's the part almost no portfolio project has: a results table with per-category accuracy, an "engineering decisions" section covering what was tried and rejected (the four colour techniques, garment segmentation, the 3D mannequin, the three-passes-to-one profiling fix), the CI badge, and real screenshots above the fold. The previously-quoted 79.4% and "~65%" figures were replaced with the reproducible 67.3% and 44.9%.
 
+### CI caught a real problem on its very first run — 2026-09-06
+
+The first GitHub Actions run failed, which is exactly what it was added for. Tests passed locally but failed on CI with `ModuleNotFoundError`. Cause: this project's modules sit at the repository root rather than inside a package, and `python -m pytest` (how they'd been run locally all along) puts the working directory on `sys.path` while a bare `pytest` (how CI ran it) does not. **Local verification had been hiding the problem, not proving its absence.** Fixed with a `pytest.ini` setting `pythonpath = .`, and confirmed by reproducing the failure with bare `pytest` before the fix and a pass after - not assumed.
+
+Worth noting what *did* pass on that failed run: installing the real `requirements.txt` on Linux, and importing the app's modules there. That's the part guarding against the deployment breakages this project has actually had.
+
+### New feature: "Complete the look" — done, 2026-09-06
+
+The matching engine answers "what goes with this?" with a ranked list of single items. The question a customer actually has is "what do I wear with this?" - and jeans plus a shirt still isn't a whole outfit. `outfit_builder.py` fills the remaining slots (a top or a bottom, plus an optional layer) by choosing from candidates the engine has **already ranked**, so this is a selection problem rather than a second search.
+
+**The one new idea is cohesion:** each additional piece is scored against the pieces already chosen, not only against the uploaded item. Without that, an outfit is three things that each happen to match the jeans but not each other. Verified on real pipeline output: navy jeans produce a white Everyday Cotton Shirt, then a Beige Blazer picked partly because it works with that shirt (cohesion 0.175).
+
+Deliberately greedy rather than searching every combination - at this catalog size, exhaustive search would cost more to explain than it gains, and a greedy pick is easy to justify to a customer. A slot with no candidate is left empty rather than filled badly, since an incomplete outfit beats a wrong one. 18 tests cover the slot planning (a dress only takes a layer - adding a skirt to it would be the same mistake as pairing jeans with more jeans), no repeated items, and that cohesion genuinely changes which item gets picked.
+
+The scoring weights moved from `matching_engine.py` into `pairing_rules.py`, next to the scoring functions they weight, so the outfit builder uses the same numbers without importing the CLIP-loading modules - which is also what keeps the new tests fast enough for CI.
+
 ### Next action
 
 Monica to check the live app once this redeploys: the new theme and card layout, the confidence message, and the "why this ranked here" breakdown under each match. Two things worth knowing for interviews, since they're the strongest material here: the project can now *prove* its accuracy with `python evaluate.py` (and that harness immediately corrected two numbers that had been quoted from smaller, easier subsets), and the upload latency work came from profiling rather than guesswork - three redundant CLIP passes down to one, 14.8s to 3.2s warm.

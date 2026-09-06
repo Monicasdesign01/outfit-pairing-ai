@@ -50,6 +50,7 @@ An LLM only writes the *explanation text* for a match that's already been decide
   - Crop it down to just the one garment, if the photo shows a full outfit
   - Review the detected category / colour / style, and correct anything the model got wrong — when the classifier's confidence is low, it says so instead of presenting every guess with equal authority
   - Get ranked matches with a plain-language explanation for each
+  - **Complete the look** — assembles a whole outfit around your item (a bottom *and* a layer), where each added piece is scored against the pieces already chosen, not just against your upload
   - Open "why this ranked here" on any match to see the weighted score that produced the order
   - Filter results by category
   - Preview any of the matches as a styled outfit pairing card, side by side with your own upload
@@ -109,6 +110,8 @@ Things that were tried, measured, and then kept or rejected on the evidence — 
 **One CLIP pass instead of three.** Profiling with the pipeline's own timing instrumentation showed the same photo was being encoded three separate times per upload — once for category, once for style, once for the similarity vector — accounting for ~12s of a ~15s upload. Scoring a cached embedding against cached text embeddings instead cut a warm upload to **3.2s**. The two implementations were checked against each other before the old one was removed: identical ranking, probabilities matching to within 0.000001.
 
 **Tests found a real bug in the colour detector.** A test asserting "every reference swatch should name itself" failed: pure mid-grey `(150,150,150)` was being named **beige**, because at zero saturation the hue reading is meaninglessly `0`, which the warm-hue check accepted. The first fix made measured accuracy *worse* (42.9% → 40.8%), so instead of keeping it, the two evaluation runs were diffed item by item — it had fixed one grey top but turned two white shirts grey. Measuring the actual brightness of those photos showed the grey/white boundary had to sit between 0.608 and 0.706; setting it to 0.65 gives **44.9%**, better than either previous version.
+
+**Outfit building is a selection problem, not a second search.** "Complete the look" reuses the candidates the matching engine has already ranked rather than running another retrieval pass, and fills each slot greedily. Exhaustive search over combinations would cost more to explain than it gains at this catalog size. The one addition is a cohesion term — a piece is scored against what's already in the outfit, which is what stops the result being three items that each match the jeans but not each other. A slot with no good candidate is left empty rather than filled badly.
 
 **Garment segmentation was evaluated and rejected.** Isolating a garment from the person wearing it would improve colour accuracy, but the model tested failed on flat-lay photos with no body to anchor to, on unusual poses, and on non-standard silhouettes. Plain background removal is used instead, and the imprecision is accounted for rather than hidden.
 
@@ -201,7 +204,8 @@ tests/                        # 54 pytest tests over the pure logic (no model do
 scripts/                      # Manual end-to-end smoke checks
 .github/workflows/tests.yml   # CI: installs the real requirements.txt on Linux, runs tests
 matching_engine.py            # classify -> filter -> retrieve -> re-rank pipeline
-pairing_rules.py              # Category pairing rules, colour/silhouette scoring
+outfit_builder.py             # Assembles a full outfit from the ranked candidates
+pairing_rules.py              # Category pairing rules, colour/silhouette scoring, weights
 color_detector.py             # k-means dominant colour + colour naming
 classify_garment.py           # CLIP zero-shot category/style classification
 remove_background.py          # rembg background removal
