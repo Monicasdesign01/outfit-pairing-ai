@@ -11,3 +11,8 @@ test_images/
 # even though *.jpg/*.jpeg/*.png are blanket-ignored above.
 !catalog_images/
 !catalog_images/**
+
+# README screenshots, same reason - they're the first thing anyone sees
+# on the repo, so they have to be committed rather than ignored.
+!docs/
+!docs/**
