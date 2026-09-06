@@ -159,9 +159,13 @@ Monica tried the crop feature and hit a `ValueError` crash on `COLOR_OPTIONS.ind
 
 **Fixed properly, not just patched around the one missing value:** added `ALL_COLOR_NAMES` to `color_detector.py` itself - a single, authoritative list of every string `closest_color_name()` can possibly return, defined right next to the function so it can't drift out of sync again. `try_it_on.py` now imports and uses this directly instead of reconstructing an options list from dicts that were never a complete picture. **Verified exhaustively, not just for the one reported case:** ran `closest_color_name()` against 20,000 random RGB values and confirmed every single result appears in `ALL_COLOR_NAMES` - zero exceptions, not just spot-checked against the one beige case that actually crashed. Re-ran the full 34-item pipeline smoke test afterward: 34/34 still succeeded.
 
+### Step 11 — README + architecture diagram — done, 2026-09-06
+
+Monica confirmed the beige fix works live and asked to move to the next step. Wrote `README.md` at the project root: overview, live-demo link placeholder (Monica to paste the actual Streamlit Cloud URL in), two Mermaid architecture diagrams (classify→filter→retrieve→re-rank, and a more detailed upload→analyze→match→explain flow — GitHub renders Mermaid natively, no extra tooling), a tech-stack table pulled from Section 8's reasoning, an honest known-limitations section (the colour-detection ceiling and the human-in-the-loop fix, CLIP accuracy numbers, placeholder catalog/UPI data, the memory risk), local setup instructions, and a project-structure tree confirmed against the actual repo (not guessed) via `ls`.
+
 ### Next action
 
-Monica to push this fix live and retest the Try It On page - upload a photo, try the crop step, and get all the way through to seeing ranked matches without a crash this time. Also still pending: confirm the three dropdowns, the colour corrections, and the opencv-python-headless fix are all working as expected on the live deployment, not just locally.
+Monica to fill in the live Streamlit Cloud URL in `README.md` where it says "add your Streamlit Community Cloud URL here." After that, Step 11 is fully done. Remaining open items are Step 9 (optional stretch, not started) and Step 10 (code complete, needs Monica's real UPI VPA) — neither is blocking; the project is in a genuinely presentable state now.
 
 ---
 ---
@@ -245,10 +249,10 @@ This is the intellectual core of the project and the single best thing to explai
 | 6 | Test pipeline end-to-end, text only | done — 18/18 uploads ran without error |
 | 7 | RAG explanation layer + fallback | done — Gemini (`gemini-3.5-flash-lite`) + template fallback; real key confirmed working 2026-09-04, all 11 test matches returned `source == "llm"` |
 | 8 | Streamlit app — Shop, Try It On, category filter | done — built, verified with a real browser test, and the explanation-generation performance issue fixed (top-3-live-explanations cap, see Section 2/11) |
-| 8B | Deploy free on Streamlit Community Cloud | prep done (requirements.txt fixed, secrets/Python version confirmed) - actual deployment needs Monica's own login, real memory risk found (725MB/1GB), see Section 2/11 |
-| 9 | Stretch — 3D mannequin | not started |
-| 10 | Optional — UPI buy link | not started |
-| 11 | README + architecture diagram | not started |
+| 8B | Deploy free on Streamlit Community Cloud | done — live on Streamlit Community Cloud, three real deployment bugs found and fixed via live testing (opencv-python-headless, catalog colours, the "beige" dropdown crash), see Section 11 |
+| 9 | Stretch — 3D mannequin | not started (explicitly optional) |
+| 10 | Optional — UPI buy link | code done (`shop_utils.py`, `build_upi_link()`), placeholder VPA - needs Monica's real UPI ID to go live, not an engineering task |
+| 11 | README + architecture diagram | in progress |
 
 ---
 
