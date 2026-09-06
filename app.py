@@ -8,7 +8,7 @@ sits inside the main Swiggy app. See Section 4 of the master file.
 
 import streamlit as st
 
-st.set_page_config(page_title="Outfit Pairing AI", layout="wide")
+st.set_page_config(page_title="Outfit Pairing AI", page_icon="👗", layout="wide")
 
 shop_page = st.Page("app_pages/shop.py", title="Shop", default=True)
 try_it_on_page = st.Page("app_pages/try_it_on.py", title="Try It On Your Clothes")

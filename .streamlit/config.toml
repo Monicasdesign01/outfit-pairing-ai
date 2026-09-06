@@ -1,0 +1,12 @@
+# Only long-standing theme keys are used here on purpose. Streamlit
+# refuses to start on an unrecognised config option, and this file ships
+# to Streamlit Community Cloud - which may run a different Streamlit
+# version - so a newer-only key would take the live app down rather than
+# just being ignored.
+[theme]
+base = "light"
+primaryColor = "#8A6552"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F3F0"
+textColor = "#2B2B2B"
+font = "sans serif"
