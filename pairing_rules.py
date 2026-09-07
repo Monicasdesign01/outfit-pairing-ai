@@ -154,6 +154,9 @@ ANALOGOUS_PAIRS = {
     frozenset({"magenta", "purple"}),
     frozenset({"peach", "orange"}),
     frozenset({"peach", "pink"}),
+    frozenset({"baby pink", "pink"}),
+    frozenset({"baby pink", "cream"}),
+    frozenset({"baby pink", "peach"}),
     frozenset({"gold", "yellow"}),
 }
 

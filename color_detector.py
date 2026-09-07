@@ -133,6 +133,7 @@ HUMAN_ONLY_COLORS = {
     "magenta",
     "peach",
     "plum",
+    "baby pink",
     # Tones that a single dominant-colour reading can't represent at all.
     "charcoal",       # very dark grey - the detector calls this black or gray
     "ivory",          # off-white with warmth
