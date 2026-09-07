@@ -16,3 +16,5 @@ test_images/
 # on the repo, so they have to be committed rather than ignored.
 !docs/
 !docs/**
+# Personal working notes - kept locally, not published
+outfit-pairing-ai-MASTER.md

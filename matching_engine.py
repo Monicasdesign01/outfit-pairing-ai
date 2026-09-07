@@ -1,6 +1,6 @@
 """
-Step 5 - the matching engine: classify -> filter -> retrieve -> re-rank.
-See outfit-pairing-ai-MASTER.md Section 11 for the full explanation.
+The matching engine: classify -> filter -> retrieve -> re-rank.
+See docs/understanding-this-project.md for the full explanation.
 """
 
 import os
@@ -173,8 +173,7 @@ def analyze_uploaded_photo(image_path):
     can show the customer the detected category/colour/style and let them
     confirm or correct it *before* running the more expensive retrieval
     step - added after real-world testing found the automatic detection
-    is wrong often enough to be worth a manual check (see Section 11,
-    Step 8 - "can we at least manually tell the app our clothes colours").
+    is wrong often enough to be worth a manual check.
     Returns the uploaded item's embedding too, so a second stage can run
     retrieval without re-doing background removal or CLIP calls.
     """

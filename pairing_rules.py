@@ -29,6 +29,13 @@ CATEGORY_LABELS = {
     "shirt": "a photo of a collared button-up shirt",
     "kurta": "a photo of a kurta",
     "hoodie": "a photo of a hooded zip-up sweatshirt",
+    # Added after evaluation showed corsets were the single biggest source
+    # of category errors: catalogued as "top", they were being read as
+    # "dress" instead, which dragged "top" down to 41% accuracy. The prompt
+    # describes what makes a corset visually different - structured, boned,
+    # and ending at the waist - rather than just naming it, since the same
+    # approach is what fixed the top/shirt confusion earlier.
+    "corset": "a photo of a fitted structured corset bustier top ending at the waist",
 }
 
 # Which categories are allowed to be suggested alongside which.
@@ -40,7 +47,7 @@ CATEGORY_LABELS = {
 # as a category of bottom, so they get the same treatment rather than
 # inventing a distinction the rules don't actually need.
 BOTTOMS = {"jeans", "skirt", "pants", "shorts"}
-TOPS = {"top", "shirt", "kurta", "hoodie"}
+TOPS = {"top", "shirt", "kurta", "hoodie", "corset"}
 
 # Grammatically plural-only garments: "these jeans pair", never "this
 # jeans pairs". Kept here with the rest of the category vocabulary so the

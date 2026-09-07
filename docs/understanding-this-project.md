@@ -20,8 +20,8 @@ Interviewers want this shape: **problem → approach → result → hardest part
 > *inside* that filtered set, then re-rank using colour and silhouette
 > rules.
 >
-> I measured it instead of guessing — category detection is 67% across 49
-> items, and I know exactly which categories fail and why. The hardest
+> I measured it instead of guessing — category detection is 71% across 49
+> items, and when evaluation showed me *why* it failed, I fixed it. The hardest
 > part was colour detection, where I hit a real ceiling and solved it by
 > changing the design instead of the algorithm."
 
@@ -113,7 +113,19 @@ because background removal strips the background, not the extra objects.
 *What I did:* designed around it rather than pretending, and let the
 customer crop their own photo to just the garment.
 
-**9. Free hosting has a 1GB memory limit.**
+**9. Evaluation told me what to fix, and fixing it worked.**
+The per-category output showed `top` was only 41% — and the misses were
+all corsets being read as `dress`. So I gave corsets their own category,
+with a prompt describing what makes them look different (structured,
+boned, ending at the waist) rather than just naming them.
+*Result:* overall accuracy **67.3% → 71.4%**, and corsets detect at
+**100%**. While checking the output I also found one item I'd labelled
+wrong myself — a structured red corset top filed as `top` — and corrected
+it. **Lesson: measurement isn't just a grade, it's a to-do list.**
+I stopped tuning there rather than chasing the last few items, because
+tuning prompts against 49 photos would just be fitting to that set.
+
+**10. Free hosting has a 1GB memory limit.**
 I measured 725MB. It fits, but there's not much headroom. I know the fix
 if it ever fails (a smaller CLIP model, or making background removal
 optional) — that's better than being surprised.
@@ -130,7 +142,7 @@ optional) — that's better than being surprised.
 | **rembg** | Background removal | Makes uploads match how catalog photos were processed |
 | **Gemini** | A large language model | Good at phrasing; it never chooses matches, so it can't invent products |
 | **Streamlit** | Builds web UIs in pure Python | Kept the whole project in one language so effort went into the pipeline, not frontend |
-| **pytest** | Testing framework | 72 tests protect the rules that encode the project's actual idea |
+| **pytest** | Testing framework | 74 tests protect the rules that encode the project's actual idea |
 | **GitHub Actions** | Runs tests automatically on every push | Catches Linux-only failures before the deployed app does |
 | **Git/GitHub** | Version control | Every change is recoverable; the history shows how the project evolved |
 
@@ -188,9 +200,9 @@ the similarity search, not after.
 
 **"How did you evaluate it?"**
 I wrote `evaluate.py`, which scores detection against the catalog's
-human-assigned labels for all 49 items. Category is 67.3%, colour 44.9%.
-More useful than the headline: six of ten categories are at 100%, and the
-failures concentrate in `top` (41%) and `shorts` (33%).
+human-assigned labels for all 49 items. Category is 71.4%, colour 44.9%.
+More useful than the headline: seven of eleven categories are at 100%,
+and the failures concentrate in `top` (38%) and `shorts` (33%).
 
 **"Why are those two so bad?"**
 Real visual ambiguity, not randomness. Corsets and camisoles catalogued as

@@ -1,7 +1,7 @@
 """
 Shop page - browsable catalog, cosmetic only. No cart, no accounts, no
 checkout logic. Exists to give the AI feature a realistic storefront
-around it (Section 4 of outfit-pairing-ai-MASTER.md).
+around it.
 """
 
 import streamlit as st

@@ -72,7 +72,7 @@ python evaluate.py
 
 | Metric | Result | Measured on |
 |---|---|---|
-| Garment category (CLIP zero-shot) | **67.3%** (33/49) | All 49 catalog items, labels assigned by hand |
+| Garment category (CLIP zero-shot) | **71.4%** (35/49) | All 49 catalog items, labels assigned by hand |
 | Dominant colour | **44.9%** (22/49) | All 49 catalog items, colours verified by eye |
 | Upload latency, warm | **3.2s** (from 14.8s) | Full pipeline, one photo |
 
@@ -80,9 +80,9 @@ Category accuracy is very unevenly distributed, which is more useful to know tha
 
 | Perfect (100%) | Struggles |
 |---|---|
-| dress, blazer, jeans, shirt, hoodie, pants | `top` 7/17 (41%), `shorts` 1/3 (33%), `skirt` 5/8 (62%) |
+| dress, blazer, jeans, shirt, hoodie, pants, corset | `top` 5/13 (38%), `shorts` 1/3 (33%), `skirt` 5/8 (62%) |
 
-The failure has a clear cause: corsets and camisoles catalogued as `top` are confidently read as `dress`, and flowy shorts as `skirt`. That is a genuine visual ambiguity, not a random error.
+Knowing *where* it fails is what makes it improvable. Evaluation showed corsets catalogued as `top` were being read as `dress` — so `corset` became its own category with a prompt describing what makes it visually distinct. That single change took overall accuracy from 67.3% to **71.4%**, and corsets now detect at **100%** (4/4). The remaining gap is flowy shorts read as `skirt`, which is genuine visual ambiguity rather than random error.
 
 **CLIP's confidence score is a usable signal, not decoration** — it averages **78.6%** when the category is right and **64.7%** when it's wrong. The app uses that gap: below 70% it tells the customer it isn't sure and asks them to check.
 

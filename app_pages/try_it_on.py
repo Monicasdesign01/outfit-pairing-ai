@@ -2,9 +2,9 @@
 Try It On Your Clothes - the AI feature. Upload a photo, crop it down to
 just the one garment to match if the photo shows more than one (e.g. a
 full outfit), review the detected category/color/style (and correct
-anything wrong - automatic detection is measurably imperfect, see
-Section 11), then get ranked matches with a category filter (Section 4
-of outfit-pairing-ai-MASTER.md).
+anything wrong - automatic detection is measurably imperfect, run
+evaluate.py for the current numbers), then get ranked matches with a
+category filter.
 """
 
 import os
@@ -35,7 +35,7 @@ STYLE_OPTIONS = sorted(STYLE_LABELS.keys())
 # rate-limits at ~15 requests/minute, and firing off a live call per
 # retrieved match (up to 9-14 of them for some uploads) was taking
 # several minutes per upload once the SDK's automatic retry/backoff
-# kicked in (see outfit-pairing-ai-MASTER.md Section 11, Step 8). Only
+# kicked in. Only
 # the top-scoring matches - the ones actually most likely to matter to
 # the customer - get a live explanation; the rest use the template
 # fallback outright, without even attempting a call that would likely
@@ -48,6 +48,13 @@ LIVE_EXPLANATION_LIMIT = 3
 # and ~65% when it gets it wrong (run evaluate.py to reproduce), so the
 # threshold sits between those two means.
 LOW_CONFIDENCE_THRESHOLD = 0.70
+
+# How many matches to actually show. Retrieval returns a few per allowed
+# category, which adds up to 9-12 - enough that the best ones get lost in
+# the list. The ranking already knows which are strongest, so the rest are
+# noise for the customer (the outfit builder still sees all of them, since
+# it needs a candidate for every slot).
+MAX_RESULTS_SHOWN = 5
 
 st.title("Try It On Your Clothes")
 st.caption("Upload a photo of something you own, and get matched with items that pair well with it.")
@@ -145,13 +152,19 @@ if uploaded_file is not None:
             with st.container(border=True):
                 confidence = detected.get("category_confidence", 1)
                 described = describe_category(detected["category"])
+                # Worded as a deliberate quality check rather than an
+                # apology: flagging a borderline score is the system
+                # working correctly, not the system being unsure of
+                # itself. The threshold is stated so the number has
+                # context instead of just looking low.
                 if confidence < LOW_CONFIDENCE_THRESHOLD:
                     st.warning(
-                        f"Not very sure about this one — **{confidence*100:.0f}%** confident it's "
-                        f"{described}. Worth checking before continuing."
+                        f"Flagged for review — **{confidence*100:.0f}%** match for {described}, "
+                        f"under the {LOW_CONFIDENCE_THRESHOLD*100:.0f}% threshold. "
+                        "Confirm the category below."
                     )
                 else:
-                    st.success(f"Detected {described} — {confidence*100:.0f}% confident.")
+                    st.success(f"Detected {described} — **{confidence*100:.0f}%** match.")
 
                 st.caption("Correct anything that looks wrong, then find matches.")
 
@@ -207,9 +220,14 @@ if uploaded_file is not None:
                 filtered_matches = [m for m in result["matches"] if m["category"] in selected_categories]
                 filtered_matches.sort(key=lambda m: m["final_score"], reverse=True)
 
-                if filtered_matches:
+                # Showing every candidate (often 9-12) buries the good ones.
+                # The ranking already knows which are best, so only the top
+                # few are worth a customer's attention.
+                shown_matches = filtered_matches[:MAX_RESULTS_SHOWN]
+
+                if shown_matches:
                     st.markdown("##### Outfit preview")
-                    preview_options = {f"{m['name']} (₹{m['price']})": m for m in filtered_matches}
+                    preview_options = {f"{m['name']} (₹{m['price']})": m for m in shown_matches}
                     preview_label = st.selectbox("See it paired with:", list(preview_options.keys()))
                     preview_match = preview_options[preview_label]
 
@@ -263,9 +281,17 @@ if uploaded_file is not None:
                             f"across {len(outfit)} item(s) plus your own piece."
                         )
 
-                st.markdown(f"##### {len(filtered_matches)} matching item(s)")
+                if len(filtered_matches) > len(shown_matches):
+                    st.markdown(
+                        f"##### Top {len(shown_matches)} matches"
+                        f"  <span style='font-weight:400;color:#888;font-size:0.8em;'>"
+                        f"of {len(filtered_matches)} that pair with your item</span>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(f"##### {len(shown_matches)} matching item(s)")
 
-                for rank, match in enumerate(filtered_matches, start=1):
+                for rank, match in enumerate(shown_matches, start=1):
                     with st.container(border=True):
                         image_col, detail_col = st.columns([1, 2])
                         with image_col:
