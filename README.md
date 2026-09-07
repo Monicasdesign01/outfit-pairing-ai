@@ -196,6 +196,12 @@ python evaluate.py   # prints the accuracy table above, plus every miss
 
 ---
 
+## Further reading
+
+- [Understanding this project](docs/understanding-this-project.md) — how the pipeline fits together file by file, what the measured numbers mean, and the decisions behind them.
+
+---
+
 ## Project structure
 
 ```
