@@ -55,6 +55,26 @@ TOPS = {"top", "shirt", "kurta", "hoodie", "corset"}
 PLURAL_CATEGORIES = {"jeans", "pants", "shorts"}
 
 
+# Coarse groups above the fine-grained categories. Used when the
+# classifier is confident about *what kind* of garment it is but not which
+# exact type - "shirt vs corset vs top" splitting three ways still adds up
+# to a confident "this is a top". A blazer groups with tops because it's
+# worn on the upper body.
+CATEGORY_GROUPS = {
+    "top": TOPS | {"blazer"},
+    "bottom": BOTTOMS,
+    "dress": {"dress"},
+}
+
+
+def category_group(category):
+    """The coarse group a category belongs to, or None if it has none."""
+    for group, members in CATEGORY_GROUPS.items():
+        if category in members:
+            return group
+    return None
+
+
 def describe_category(category, article=True):
     """Category name as it should read in a sentence - 'jeans' or 'a
     skirt'. Without an article: 'jeans' / 'skirt'."""

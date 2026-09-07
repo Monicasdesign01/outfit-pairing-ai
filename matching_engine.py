@@ -15,6 +15,7 @@ from color_detector import get_dominant_color, closest_color_name
 from pairing_rules import (
     CATEGORY_LABELS,
     COLOR_WEIGHT,
+    category_group,
     SIMILARITY_WEIGHT,
     STYLE_LABELS,
     STYLE_WEIGHT,
@@ -46,7 +47,21 @@ def classify_uploaded_item(embedding):
     label_to_category = {v: k for k, v in CATEGORY_LABELS.items()}
     category = label_to_category[top_label]
 
-    return category, confidence
+    # Confidence in the coarse group is the sum of its members', not just
+    # the winner's. A photo splitting 30% shirt / 30% corset / 25% top
+    # isn't an uncertain result - the model is 85% sure it's a top and only
+    # unsure which kind. That distinction is what lets the app stay
+    # specific when it can and stay honest when it can't.
+    group_probabilities = {}
+    for label, probability in results:
+        group = category_group(label_to_category[label])
+        if group:
+            group_probabilities[group] = group_probabilities.get(group, 0) + probability
+
+    group = category_group(category)
+    group_confidence = group_probabilities.get(group, confidence)
+
+    return category, confidence, group, group_confidence
 
 
 def load_catalog():
@@ -198,7 +213,9 @@ def analyze_uploaded_photo(image_path):
     t_embed = time.time()
     print(f"[TIMING] compute uploaded embedding (CLIP): {t_embed - t_bg:.2f}s")
 
-    category, category_confidence = classify_uploaded_item(uploaded_embedding)
+    category, category_confidence, category_group_name, group_confidence = classify_uploaded_item(
+        uploaded_embedding
+    )
     t_classify = time.time()
     print(f"[TIMING] classify category (cached text embeddings): {t_classify - t_embed:.2f}s")
 
@@ -217,6 +234,8 @@ def analyze_uploaded_photo(image_path):
     return {
         "category": category,
         "category_confidence": category_confidence,
+        "category_group": category_group_name,
+        "group_confidence": group_confidence,
         "color": uploaded_color,
         "style": uploaded_style,
         "embedding": uploaded_embedding,

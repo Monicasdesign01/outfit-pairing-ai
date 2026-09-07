@@ -151,20 +151,31 @@ if uploaded_file is not None:
         with detail_col:
             with st.container(border=True):
                 confidence = detected.get("category_confidence", 1)
-                described = describe_category(detected["category"])
-                # Worded as a deliberate quality check rather than an
-                # apology: flagging a borderline score is the system
-                # working correctly, not the system being unsure of
-                # itself. The threshold is stated so the number has
-                # context instead of just looking low.
-                if confidence < LOW_CONFIDENCE_THRESHOLD:
-                    st.warning(
-                        f"Flagged for review — **{confidence*100:.0f}%** match for {described}, "
-                        f"under the {LOW_CONFIDENCE_THRESHOLD*100:.0f}% threshold. "
-                        "Confirm the category below."
+                group = detected.get("category_group")
+                group_confidence = detected.get("group_confidence", confidence)
+
+                # Say only as much as the model has earned. Above the
+                # threshold it names the exact garment; below it, it falls
+                # back to the coarse group - which it is usually still very
+                # confident about, because an even split between shirt,
+                # corset and top is not doubt about it being a top. That
+                # keeps the statement true without sounding uncertain.
+                if confidence >= LOW_CONFIDENCE_THRESHOLD:
+                    st.success(
+                        f"Detected {describe_category(detected['category'])} — "
+                        f"**{confidence*100:.0f}%** match."
+                    )
+                elif group and group_confidence >= LOW_CONFIDENCE_THRESHOLD:
+                    st.success(
+                        f"Detected **a {group}** — **{group_confidence*100:.0f}%** match. "
+                        f"Pick the exact type below if you want a closer fit."
                     )
                 else:
-                    st.success(f"Detected {described} — **{confidence*100:.0f}%** match.")
+                    # Neither the exact type nor the broad group clears the
+                    # bar, so the app claims nothing. Stating "a bottom" at
+                    # 57% would just be confidently wrong on the photos
+                    # where it's confused about that too.
+                    st.info("This one's unusual — pick the category below and we'll match from there.")
 
                 st.caption("Correct anything that looks wrong, then find matches.")
 
