@@ -1,242 +1,402 @@
-# Understanding (and explaining) this project
+# Understanding and explaining this project
 
-Written for Monica, to be read without any AI assistant open. Everything
-here is grounded in what the code actually does and what was actually
-measured — no claims you can't back up if someone digs.
-
-The master file (`outfit-pairing-ai-MASTER.md`) is the full history. This
-is the version you'd actually reread.
+Everything you need to talk about this project confidently, in plain
+language. Every number here can be reproduced by running
+`python evaluate.py` — never quote a number you can't reproduce.
 
 ---
 
-## 1. The 60-second version
+## 1. The 30-second answer to "tell me about your project"
+
+Interviewers want this shape: **problem → approach → result → hardest part.**
 
 > "It's a clothing store where you upload a photo of something you already
-> own, and it finds items from the catalog that go *with* it — then
-> explains why.
+> own, and it recommends catalog items that go *with* it, and explains why.
 >
-> The interesting part is that 'looks similar' and 'goes together' are
-> opposite goals. If you upload jeans, a normal image-similarity search
-> returns more jeans. That's useless. So the pipeline classifies the item
-> first, filters the catalog down to categories that actually pair with it
-> — tops, not more bottoms — and only *then* searches for visual
-> similarity inside that filtered set. Finally it re-ranks using
-> colour-theory and silhouette rules.
+> The key idea is that 'looks similar' and 'goes together' are opposite
+> goals. If you upload jeans, a normal image-similarity search gives you
+> more jeans — useless. So I classify the item first, filter the catalog
+> to only categories that pair with it, search for visual similarity
+> *inside* that filtered set, then re-rank using colour and silhouette
+> rules.
 >
-> I measured it rather than guessing: category detection is 67% across the
-> catalog, and I know exactly which categories fail and why."
+> I measured it instead of guessing — category detection is 67% across 49
+> items, and I know exactly which categories fail and why. The hardest
+> part was colour detection, where I hit a real ceiling and solved it by
+> changing the design instead of the algorithm."
 
-If you only remember one sentence, remember: **items that look similar are
-not the same as items that go together.** Everything else follows from it.
+That last sentence usually gets the follow-up question — which is good,
+because it's your strongest story.
 
 ---
 
-## 2. The pipeline, in the order it runs
+## 2. What each step does
 
-Upload a photo → **classify → filter → retrieve → re-rank** → explain.
-
-1. **Classify** — What is this? CLIP decides the category (jeans, shirt…),
-   OpenCV k-means finds the dominant colour, CLIP also guesses style.
-2. **Filter** — Which categories pair with it? Hand-written rules say a
-   bottom pairs with tops and a blazer, never another bottom. This is the
-   step that makes the whole thing work.
-3. **Retrieve** — Of the allowed items, which look closest? FAISS searches
-   embeddings, one index per category.
-4. **Re-rank** — Reorder using colour theory and silhouette balance:
-   `similarity×0.5 + colour×0.35 + silhouette×0.15`.
-5. **Explain** — Gemini writes one sentence about a match that has
-   *already been decided*. It never picks anything, so it can't invent a
-   product that isn't in the catalog. If the API fails, a template
-   sentence is used instead, so a live demo never breaks.
+| Step | What happens | Why it exists |
+|---|---|---|
+| **Upload + crop** | You pick a photo, crop to one garment | Photos often show a whole outfit; the model can only classify one thing |
+| **Background removal** | `rembg` strips the background | Catalog photos were processed the same way — comparing a garment-with-background against clean images would be unfair |
+| **Classify** | CLIP names the category and style; k-means finds the dominant colour | You can't filter until you know what the item is |
+| **Confirm** | You can correct category/colour/style | Detection is imperfect, so the design accounts for it instead of hiding it |
+| **Filter** | Rules pick which categories can pair with it | **This is the step that makes the project work** — a bottom pairs with tops, never another bottom |
+| **Retrieve** | FAISS finds the visually closest items *within* allowed categories | Narrowing first means the search can't return nonsense |
+| **Re-rank** | Score = similarity×0.5 + colour×0.35 + silhouette×0.15 | "Looks closest" isn't "pairs best" |
+| **Explain** | Gemini writes one sentence about a match already chosen | Phrasing is what language models are good at; deciding is not |
+| **Complete the look** | Builds a full outfit, scoring each new piece against the ones already picked | One item isn't an outfit — jeans + shirt still needs a layer |
 
 **Why the weights are uneven:** style detection measured weaker than
-category detection, so the least reliable signal is trusted least. That's
-a decision you can defend, not a guess.
+category detection, so the least reliable signal gets the least influence.
+That's a decision you can defend.
 
 ---
 
-## 3. What each file does
+## 3. The challenges I faced (and what I did)
 
-| File | What it does |
-|---|---|
-| `app.py` | Entry point; sets up the two pages |
-| `app_pages/shop.py` | The storefront — grid, filter, sort |
-| `app_pages/try_it_on.py` | The AI feature end to end (upload → crop → confirm → match) |
-| `matching_engine.py` | The pipeline: classify → filter → retrieve → re-rank |
-| `pairing_rules.py` | What pairs with what, colour/silhouette scoring, the weights |
-| `outfit_builder.py` | Builds a whole outfit, with the cohesion idea |
-| `classify_garment.py` | CLIP: image embeddings + zero-shot classification |
-| `color_detector.py` | k-means dominant colour + naming it |
-| `remove_background.py` | rembg, so photos match catalog conditions |
-| `explanation.py` | Gemini call + the template fallback |
-| `evaluate.py` | Measures accuracy against human-assigned labels |
-| `tests/` | 72 tests over the logic that matters |
+These are the most valuable part of your interview. Each is true.
 
-**Read them in this order** if you want to understand the codebase:
-`pairing_rules.py` (small, pure, it's the idea) → `color_detector.py` →
-`matching_engine.py` → `try_it_on.py`.
+**1. Colour detection hit a real ceiling.**
+Naming a colour from one dominant RGB value against a small palette kept
+getting ~45%. I tried four different techniques — hand-tuned reference
+colours, two versions using a public colour-survey dataset, and a
+perceptual colour space (CIE LAB). None was meaningfully better.
+*What I did:* stopped optimising a component that wasn't the core of the
+project. I verified all 49 catalog colours by eye once, and made the app
+show its guess in an editable dropdown so a wrong detection is a one-click
+fix. **Lesson: knowing when to stop tuning is an engineering skill.**
 
----
+**2. Uploads took 15 seconds.**
+I had timing logs in the pipeline. They showed the same photo was being
+encoded by CLIP **three separate times** — once for category, once for
+style, once for the search vector.
+*What I did:* encoded the image once and compared that one embedding
+against cached text embeddings. **15s → 3.2s.** I checked old vs new gave
+identical results before deleting the old code.
 
-## 4. The numbers, and what they mean
+**3. The app worked locally and crashed in production.**
+Twice. First, `opencv-python` needs system graphics libraries that servers
+don't have — the fix is `opencv-python-headless`. Second, PyTorch's
+CPU-only build isn't on normal PyPI, so it needed an extra package index.
+*What I did:* fixed both, then set up CI that installs the real
+requirements on Linux, so this class of bug gets caught before deploying.
 
-Run `python evaluate.py` any time to regenerate these.
+**4. A crash from a value that wasn't in a list.**
+The colour detector could return `"beige"`, but the dropdown built its
+options from two dictionaries — and `"beige"` wasn't a key in either. The
+first time a photo was detected as beige, the page crashed.
+*What I did:* didn't just add the missing string. I made one list in the
+detector itself that defines every value it can return, so the two can't
+drift apart again. Then tested 20,000 random colours to confirm nothing
+else could escape.
 
-- **Category: 67.3%** (33/49). But six categories are at **100%** —
-  dress, blazer, jeans, shirt, hoodie, pants. The failures concentrate in
-  `top` (41%) and `shorts` (33%).
-- **Why they fail:** corsets and camisoles catalogued as `top` get read as
-  `dress`; flowy shorts get read as `skirt`. That's real visual ambiguity,
-  not randomness.
-- **Colour: 44.9%** (22/49). Naming a colour from one dominant RGB value
-  against a small palette has a genuine ceiling.
-- **Confidence is informative:** CLIP averages **78.6%** confidence when
-  it's right and **64.7%** when it's wrong. That gap is why the app warns
-  you below 70%.
-- **Speed: 3.2s** per upload, down from 14.8s.
-
-**Do not quote 79.4% or "~65%".** Those were older numbers measured on
-smaller, easier subsets. Quoting a number you can't reproduce is the one
-thing that will actually hurt you.
-
----
-
-## 5. Six stories that show judgment
-
-Interviewers care more about how you think than what you built. Each of
-these is true and has evidence behind it.
-
-**1. Hitting a ceiling and changing strategy.** Colour naming wouldn't get
-better. Four techniques were tried and measured — hand-tuned swatches, two
-uses of the xkcd colour dataset, CIE LAB perceptual distance — and none
-beat the others meaningfully. So instead of optimising a component that
-isn't the core of the project, the catalog colours were verified by hand
-once, and the app lets the customer correct a wrong guess in one click.
-*Knowing when to stop optimising is the point of this story.*
-
-**2. Profiling instead of guessing.** Uploads took ~15 seconds. The timing
-logs showed the same photo was being encoded by CLIP three separate times
-— once for category, once for style, once for the search vector. Scoring
-one cached embedding against cached text embeddings cut it to 3.2s. The
-old and new versions were compared before deleting the old one:
-identical rankings, probabilities matching to 0.000001.
-
-**3. A test caught a real bug.** A test asserting "every reference colour
-should name itself" failed: pure grey was being named *beige*, because at
-zero saturation the hue reading is meaninglessly 0, which the "is it warm?"
+**5. A test found a bug I didn't know about.**
+I wrote a test saying "every reference colour should name itself." It
+failed — pure grey was being named *beige*, because when a colour has no
+saturation the hue reading is meaninglessly 0, which my "is it warm?"
 check accepted.
 
-**4. …and the first fix made it worse.** Measurement caught that too:
-accuracy dropped 42.9% → 40.8%. Diffing the two runs item by item showed
-it had fixed one grey top but turned two white shirts grey. Measuring
-those photos gave the actual boundary, and the final version scores
-44.9%. *The lesson: "I fixed it" isn't true until you measure it.*
+**6. …and my first fix made things worse.**
+Accuracy dropped from 42.9% to 40.8%. I compared the two runs item by
+item: it fixed one grey top but turned two white shirts grey. I measured
+the actual brightness of those three photos, found the boundary had to sit
+between them, and set it from data. Final: **44.9%**.
+**Lesson: "I fixed it" isn't true until you measure it.**
 
-**5. Building something, then deleting it.** A 3D mannequin preview was
-built to show outfits worn. Getting it to a quality worth showing needed
-cloth-simulation software and 3D garment models — flat photos can't
-provide those. So it was deleted rather than kept as something
-half-working, and replaced with a 2D pairing card that uses real photos.
+**7. Tests passed locally and failed in CI.**
+`python -m pytest` puts your project on the import path; a bare `pytest`
+doesn't — and CI used the bare form. My local testing had been *hiding*
+the problem, not proving it worked. Fixed with a `pytest.ini`.
 
-**6. CI caught what local testing missed.** Tests passed locally, then
-failed on the first CI run. Cause: `python -m pytest` puts the project on
-the import path, a bare `pytest` doesn't — and CI used the bare form.
-*Local verification was hiding the problem, not proving its absence.*
+**8. The catalog photos aren't clean product shots.**
+They're real lifestyle photos — a model wearing the item, often with a bag
+or other clothing in frame. That limits what image processing can do,
+because background removal strips the background, not the extra objects.
+*What I did:* designed around it rather than pretending, and let the
+customer crop their own photo to just the garment.
+
+**9. Free hosting has a 1GB memory limit.**
+I measured 725MB. It fits, but there's not much headroom. I know the fix
+if it ever fails (a smaller CLIP model, or making background removal
+optional) — that's better than being surprised.
 
 ---
 
-## 6. Questions you'll get, and honest answers
+## 4. The tools, and why each one
 
-**"Why CLIP instead of training your own classifier?"**
-No training data, and no need — CLIP already learned image/word
-relationships from the internet, so it classifies from text prompts with
-zero examples. Training a classifier for ten categories would have needed
-thousands of labelled photos to do worse.
+| Tool | What it is | Why I chose it |
+|---|---|---|
+| **CLIP** | A model trained on image–text pairs, so images and words live in the same "space" | Lets me classify from text prompts with **zero training examples** — I had no labelled dataset |
+| **FAISS** | A library for fast similarity search over vectors | Free, runs locally, and one index per category means filtering happens *before* searching |
+| **OpenCV (k-means)** | Classic image processing; k-means groups pixels | Finding the most common colour is counting and grouping — a solved maths problem, not a job for AI |
+| **rembg** | Background removal | Makes uploads match how catalog photos were processed |
+| **Gemini** | A large language model | Good at phrasing; it never chooses matches, so it can't invent products |
+| **Streamlit** | Builds web UIs in pure Python | Kept the whole project in one language so effort went into the pipeline, not frontend |
+| **pytest** | Testing framework | 72 tests protect the rules that encode the project's actual idea |
+| **GitHub Actions** | Runs tests automatically on every push | Catches Linux-only failures before the deployed app does |
+| **Git/GitHub** | Version control | Every change is recoverable; the history shows how the project evolved |
 
-**"Why FAISS for 49 items? Brute force would be identical."**
-Correct, and at this size it is. It's there because the *approach* has to
-scale, not today's catalog — one index per category keeps working
-unchanged at thousands of items. Also, one index per category means the
-filtering already happened before any search runs.
+---
 
-**"Why rules for pairing instead of ML?"**
-There's no free dataset of "outfits that go together" to learn from. Rules
-also stay explainable — I can tell a customer *why* something was
-suggested, which the score breakdown in the app actually shows.
+## 5. Skills I gained (say these plainly)
+
+- **Using pretrained models instead of training my own** — knowing when
+  zero-shot is enough is a real judgment call
+- **Vector embeddings and similarity search** — how images become numbers
+  and how "closeness" is measured (cosine similarity)
+- **Measuring instead of assuming** — I built an evaluation script and it
+  corrected two of my own earlier claims
+- **Testing and CI** — including the experience of tests catching a bug I
+  wrote myself
+- **Debugging production vs local differences** — the two deployment
+  crashes taught me more than the features did
+- **Making trade-offs and defending them** — rules vs ML, FAISS vs brute
+  force, stopping work on colour detection
+- **Python** (coming from Java), **Git**, **API integration with a
+  fallback path** so a demo never breaks
+
+---
+
+## 6. How to show the project is good
+
+Point at evidence, not adjectives.
+
+| Say this | Show this |
+|---|---|
+| "It's measured, not guessed" | `python evaluate.py` prints accuracy and every individual miss |
+| "It's tested" | `pytest` — 72 tests, green CI badge on the README |
+| "It's live" | The Streamlit URL, working in a browser |
+| "It's honest" | The README lists real numbers, including the weak ones |
+| "It's explainable" | The "why this ranked here" panel shows the score breakdown |
+| "I profiled it" | 15s → 3.2s, with the reason (three CLIP passes → one) |
+
+**The strongest single move in an interview:** say a number, then offer to
+show how you'd reproduce it. Most candidates can't.
+
+---
+
+## 7. Interview questions and answers
+
+### About your project
+
+**"Walk me through your project."**
+Use the 30-second answer in section 1, then stop and let them ask.
+
+**"Why not just use image similarity?"**
+Because similarity finds *more of the same thing*. Upload jeans and you
+get more jeans. The recommendation I want is the opposite — something
+different that goes with it. That's why category filtering comes before
+the similarity search, not after.
+
+**"How did you evaluate it?"**
+I wrote `evaluate.py`, which scores detection against the catalog's
+human-assigned labels for all 49 items. Category is 67.3%, colour 44.9%.
+More useful than the headline: six of ten categories are at 100%, and the
+failures concentrate in `top` (41%) and `shorts` (33%).
+
+**"Why are those two so bad?"**
+Real visual ambiguity, not randomness. Corsets and camisoles catalogued as
+`top` get read as `dress`; flowy shorts get read as `skirt`. Knowing the
+*cause* is what makes it fixable — the next step is prompt wording that
+describes the visual difference.
+
+**"67% doesn't sound very good."**
+It's honest, and the app is designed around imperfect detection rather
+than pretending otherwise: it shows its confidence and lets the user
+correct it in one click. I'd rather have a measured 67% I can improve than
+an unmeasured claim.
+
+**"How do you know the recommendations are actually good?"**
+I don't, and I'm careful not to claim it. I can measure the *components* —
+does it correctly identify the garment and its colour — because I have
+ground truth for those. Measuring "is this a good outfit" would need real
+users, click data, or human raters. That would be A/B testing or
+precision@k with labelled pairs, and I didn't have that data.
+*(This answer is strong precisely because it's honest about the limit.)*
+
+### About CLIP and embeddings
+
+**"How does CLIP work?"**
+It's trained on huge numbers of image–caption pairs. It learns to put an
+image and its matching text close together in the same mathematical space,
+and non-matching pairs far apart (contrastive learning). Because they
+share a space, you can compare a picture to a sentence directly using
+cosine similarity.
+
+**"So how do you classify with no training data?"**
+Zero-shot. I write one sentence per category — "a photo of jeans", "a
+photo of a collared button-up shirt" — encode those sentences, encode the
+image, and pick the sentence closest to the image. No labelled examples
+needed.
+
+**"What is an embedding?"**
+A list of numbers representing something's meaning — 512 numbers per image
+here. Similar things get similar numbers, so "how alike are these?"
+becomes simple maths instead of a judgment call.
+
+**"Did changing the prompt wording matter?"**
+A lot. Rewriting just the `top` and `shirt` prompts to describe the actual
+visual difference — collar and buttons versus none — raised accuracy from
+67.6% to 79.4% on the catalog at the time. Being more emphatic in wording
+made it *worse*, which I only knew because I measured.
+
+### About recommendation systems
+
+**"Is this collaborative filtering or content-based?"**
+Content-based. It works from the item's own visual features, not from what
+other users liked.
+
+**"What about the cold-start problem?"** *(very common question)*
+Content-based systems mostly avoid it. There are no users and no history
+at all — a brand new catalog item can be recommended immediately, because
+all I need is its photo. The trade-off is the opposite one: I can't
+personalise to a specific person's taste, because I don't collect any.
+
+**"How would you add personalisation?"**
+Start by logging which suggestions people click or buy. Once there's
+enough of that, a hybrid: keep the content-based pipeline for cold items,
+and blend in collaborative signals as a re-ranking term — the re-ranker is
+already a weighted sum, so it's the natural place to add one.
+
+**"Why rules for pairing instead of machine learning?"**
+There's no free dataset of "outfits that go together" to learn from.
+Rules also stay explainable — the app literally shows the user why a match
+ranked where it did, which a learned model wouldn't.
+
+**"Why FAISS for only 49 items? Brute force is the same speed."**
+Correct, at this size it is. I chose it because the *approach* has to scale
+— one index per category keeps working unchanged at thousands of items.
+It also means the filtering already happened before any search runs.
+
+**"How would you scale this to a million items?"**
+Swap the exact index for an approximate one (FAISS supports that directly),
+precompute embeddings in a batch job rather than at request time, and
+cache. The pipeline shape wouldn't change.
 
 **"Isn't the LLM doing the real work?"**
-No — it only phrases a decision the rules already made. It's given the
-facts and told not to invent any others. If it fails, a template sentence
-covers it, so the demo never breaks on a third-party API.
+No. It only phrases a decision the rules already made. It's given the
+facts and told not to invent anything else, and if the API fails a
+template sentence takes over — so the demo never breaks on a third party.
 
-**"67% accuracy isn't very good."**
-It's honest, and it's uneven in a useful way: six of ten categories are at
-100%, and I know the failing cases are corsets read as dresses. I also
-built the app around imperfect detection rather than pretending — it shows
-its confidence and lets you correct it in one click.
+### About engineering practice
 
-**"What would you do next?"**
-Prompt wording for `top` and `shorts` specifically, since evaluation
-pinpointed them. Longer term, a learned colour classifier instead of
-nearest-neighbour matching. And reducing memory use, which is the real
-constraint on the free hosting tier.
+**"What was the hardest bug?"**
+The one my own tests caught: pure grey was being named beige, because when
+saturation is zero the hue value is meaningless. What makes it a good
+story is what happened next — my first fix made measured accuracy *worse*,
+so I compared the runs item by item and set the threshold from measured
+values instead of intuition.
+
+**"How do you test something with a model in it?"**
+I test the parts that are deterministic — the pairing rules, colour
+naming, the payment link, the fallback logic. Model inference isn't unit
+tested; it's *evaluated* separately with `evaluate.py`. Mixing those two
+would give me slow tests that prove nothing.
+
+**"What does your CI do?"**
+Installs the real requirements on Linux with Python 3.12, checks the
+modules import, and runs the tests. It's set up that way deliberately —
+both of my real production outages were Linux-only dependency problems, so
+CI would have caught them.
+
+**"Tell me about a time you were wrong."**
+Two good ones: the colour fix that made accuracy worse, and my accuracy
+numbers themselves — when I built proper evaluation, it showed my earlier
+figures had been measured on smaller, easier subsets. I corrected them
+publicly in the README rather than keeping the better-looking number.
+
+**"What would you do differently?"**
+Build the evaluation script first, not late. I tuned things for a while
+based on impressions before I had a way to measure, and some of that time
+was wasted.
+
+**"What's next?"**
+Targeted prompt work for `top` and `shorts`, since evaluation pinpointed
+them. Then a learned colour classifier instead of nearest-neighbour
+matching. And reducing memory use, which is the real constraint on free
+hosting.
+
+### Questions to ask them
+
+Asking good questions is part of being assessed:
+- "How do you measure whether a model change actually improved things?"
+- "How much of the work is building new models versus keeping existing
+  ones working?"
+- "What does code review look like here?"
 
 ---
 
-## 7. Test yourself (the part that actually works)
+## 8. Things that impress — and things to avoid
 
-Close everything and try to answer out loud. Anywhere you hesitate, open
-that file, read it, and try again tomorrow.
+**Impresses:**
+- Numbers you can reproduce on the spot
+- Knowing exactly *where* your system fails and why
+- Admitting a limit before they find it ("I can't claim the outfits are
+  good, only that the components are measured")
+- A story where you were wrong and measurement corrected you
+- Deleting or stopping work on something that wasn't worth it
 
-1. Why doesn't this just use image similarity? What breaks if it did?
-2. What happens, step by step, between clicking upload and seeing matches?
-3. Where do the pairing rules live, and what would you change to make
-   blazers pair with dresses?
-4. Why is style weighted lowest in the ranking?
-5. What does `evaluate.py` deliberately *not* measure, and why?
-6. Why does the app show a confidence warning below 70% specifically?
-7. What's in `cohesion_score()` and what would the outfit look like
-   without it?
-
-A stronger version: **change something small and see if the tests catch
-you.** Edit a pairing rule so bottoms pair with bottoms, run `pytest`, and
-watch it fail. That's the fastest way to learn what the tests protect.
+**Avoid:**
+- Quoting **79.4%** or **"~65%"** — old numbers from easier subsets
+- Saying "AI does it" — be specific about which part does what
+- Claiming the LLM chooses matches (it doesn't)
+- Overstating scale — 49 items is a demo catalog, say so plainly
+- Saying "it works perfectly"
 
 ---
 
-## 8. Working on this without an assistant
+## 9. Test yourself
 
-**Your three commands:**
+Close everything. Answer out loud. Where you hesitate, open that file and
+read it, then try again tomorrow.
+
+1. Why doesn't this just use image similarity?
+2. What happens step by step between upload and seeing matches?
+3. Where do the pairing rules live, and how would you make blazers pair
+   with dresses?
+4. Why is style weighted lowest?
+5. What does `evaluate.py` deliberately not measure, and why?
+6. Why does the confidence warning trigger below 70% specifically?
+7. What is cohesion in `outfit_builder.py`, and what would the outfit look
+   like without it?
+
+**Best exercise:** break something on purpose. Edit `pairing_rules.py` so
+bottoms pair with bottoms, run `pytest`, watch it fail, then undo with
+`git checkout pairing_rules.py`. Ten minutes of that teaches more than an
+hour of reading.
+
+---
+
+## 10. Working on it without help
 
 ```bash
 pytest                 # did I break anything?
 python evaluate.py     # how well does it work right now?
-streamlit run app.py   # does it actually work in the browser?
+streamlit run app.py   # does it work in the browser?
 ```
 
-**When something breaks:** read the last line of the error first — it
-names the file and line. Most errors are a typo, a missing import, or a
-wrong filename. Compare against a working file nearby.
+- **Errors:** read the *last* line first — it names the file and line.
+- **Changed `catalog.json`?** Re-run `python build_catalog_embeddings.py`.
+- **Before pushing:** run `pytest`. Green means push; CI double-checks on
+  Linux.
+- **Nothing is unrecoverable.** `git status` shows what changed,
+  `git diff` shows exactly what, `git checkout <file>` undoes it.
 
-**When you change catalog.json:** re-run `python build_catalog_embeddings.py`,
-or the app will look for embeddings that don't exist.
-
-**Before pushing:** run `pytest`. If it's green, push — CI will double
-check on Linux, which is where the deployed app actually runs.
-
-**Don't be afraid of breaking it.** Everything is in git. `git status`
-shows what you changed; `git diff` shows exactly what's different; and if
-you need to abandon a change, `git checkout <file>` restores it.
+**Read the code in this order:** `pairing_rules.py` (small, pure Python,
+and it *is* the idea) → `color_detector.py` → `matching_engine.py` →
+`app_pages/try_it_on.py`.
 
 ---
 
-## 9. Two things still open
+## 11. Still open
 
-- **`catalog_images/beige_blazer.jpg` has a visible iStock watermark.**
-  Replace it with a freely-licensed photo (Unsplash/Pexels) and re-run
-  `build_catalog_embeddings.py`, or remove that item. Worth checking the
-  other photos while you're there.
-- **Memory on the free hosting tier** is the real limit (~725MB measured
-  against 1GB). If the app ever gets killed for resources, the fix is a
-  smaller CLIP variant or making background removal optional — not more
-  debugging.
+- `catalog_images/beige_blazer.jpg` has a visible **iStock watermark**.
+  Replace it with a freely-licensed photo and re-run
+  `build_catalog_embeddings.py`, or remove that item. Check the others too.
+- Memory on free hosting: 725MB measured against a 1GB limit.
+
+---
+
+*Question patterns above were checked against published interview guides
+for recommender systems, computer vision and CLIP, and general ML project
+interviews — the "explain the problem, data, approach, metrics, result and
+main challenge" framework, cold-start, and evaluation-metric questions are
+the ones that come up most consistently.*
