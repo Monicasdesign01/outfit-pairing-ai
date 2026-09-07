@@ -6,10 +6,17 @@ around it.
 
 import streamlit as st
 
-from shop_utils import load_catalog_items, catalog_image_path, build_upi_link
+from shop_utils import load_catalog_items, catalog_image_path, build_upi_link, tile_image
 
 st.title("Shop")
 st.caption("Vintage, celebrity, and new clothing.")
+
+# Cropping runs once per photo per session rather than on every rerun -
+# a 49-item grid re-cropping on each filter change would be visibly slow.
+@st.cache_data(show_spinner=False)
+def uniform_tile(path):
+    return tile_image(path)
+
 
 catalog = load_catalog_items()
 
@@ -43,7 +50,7 @@ for row in rows:
     for col, item in zip(cols, row):
         with col:
             with st.container(border=True):
-                st.image(catalog_image_path(item), width="stretch")
+                st.image(uniform_tile(catalog_image_path(item)), width="stretch")
                 st.markdown(f"**{item['name']}**")
                 # Grouped digits read as a price; a bare 1499 reads as an ID.
                 st.markdown(f"### ₹{item['price']:,}")

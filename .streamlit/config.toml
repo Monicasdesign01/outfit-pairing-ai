@@ -3,10 +3,15 @@
 # to Streamlit Community Cloud - which may run a different Streamlit
 # version - so a newer-only key would take the live app down rather than
 # just being ignored.
+#
+# The palette is deliberately restrained: a near-black accent on warm
+# off-white, the way clothing retailers present product photography. The
+# garments should be the only saturated colour on the page, so the
+# interface stays out of their way.
 [theme]
 base = "light"
-primaryColor = "#8A6552"
+primaryColor = "#26241F"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F6F3F0"
-textColor = "#2B2B2B"
+secondaryBackgroundColor = "#F4F2EE"
+textColor = "#1A1917"
 font = "sans serif"

@@ -67,3 +67,28 @@ def test_every_catalog_image_file_actually_exists():
 
     for item in load_catalog_items():
         assert os.path.exists(catalog_image_path(item)), f"missing image for {item['id']}"
+
+
+def test_tiles_all_come_out_the_same_shape():
+    """A grid of ragged card heights looks unfinished, so every product
+    photo is cropped to one tile ratio regardless of how it was shot."""
+    from shop_utils import TILE_ASPECT, tile_image
+
+    expected = TILE_ASPECT[0] / TILE_ASPECT[1]
+    for item in load_catalog_items()[:8]:
+        width, height = tile_image(catalog_image_path(item)).size
+        assert abs(width / height - expected) < 0.01
+
+
+def test_tiling_crops_rather_than_stretches():
+    """Cropping keeps the garment's proportions; scaling to fit would
+    distort it, which is worse than losing a little of the edges."""
+    from PIL import Image
+
+    from shop_utils import tile_image
+
+    path = catalog_image_path(load_catalog_items()[0])
+    original = Image.open(path)
+    tiled = tile_image(path)
+    assert tiled.width <= original.width
+    assert tiled.height <= original.height

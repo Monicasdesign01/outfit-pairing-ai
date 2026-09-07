@@ -19,16 +19,18 @@ from matching_engine import analyze_uploaded_photo, find_matches_from_details
 from explanation import get_explanation, build_template_explanation
 from shop_utils import catalog_image_path, build_upi_link
 from pairing_rules import CATEGORY_LABELS, STYLE_LABELS, describe_category
-from color_detector import ALL_COLOR_NAMES
+from color_detector import SELECTABLE_COLOR_NAMES
 from outfit_builder import build_outfit
 
 CATEGORY_OPTIONS = sorted(CATEGORY_LABELS.keys())
-# ALL_COLOR_NAMES is color_detector.py's own single source of truth for
-# every value closest_color_name() can return - reconstructing this list
-# by hand from its internal reference dicts (as an earlier version did)
-# missed "beige" (a real return value that isn't a dict key) and crashed
-# the app with a ValueError the first time a real upload detected it.
-COLOR_OPTIONS = ALL_COLOR_NAMES
+# Deliberately the *selectable* list, not the detectable one: it includes
+# shades the detector has no reference for (silver, charcoal, a patterned
+# garment that isn't one colour), because automatic detection is
+# imperfect and the customer needs to be able to name what they actually
+# have. color_detector guarantees every detectable colour is in here, so
+# preselecting a detected value can't fail - the bug that once crashed
+# the live app on "beige".
+COLOR_OPTIONS = SELECTABLE_COLOR_NAMES
 STYLE_OPTIONS = sorted(STYLE_LABELS.keys())
 
 # Real constraint, not a workaround being hidden: Gemini's free tier
@@ -55,6 +57,11 @@ LOW_CONFIDENCE_THRESHOLD = 0.70
 # noise for the customer (the outfit builder still sees all of them, since
 # it needs a candidate for every slot).
 MAX_RESULTS_SHOWN = 5
+
+# The crop outline sits on top of the customer's own photo, so it can't
+# use the theme's near-black accent - it would disappear against dark
+# clothing. A warm amber reads clearly against almost any garment.
+CROP_BOX_COLOR = "#D99A2B"
 
 st.title("Try It On Your Clothes")
 st.caption("Upload a photo of something you own, and get matched with items that pair well with it.")
@@ -84,17 +91,31 @@ if uploaded_file is not None:
     if not st.session_state.get("crop_confirmed"):
         st.subheader("2. Crop to one garment")
         st.caption(
-            "If your photo shows more than one garment (e.g. a full outfit), drag the box "
-            "around just the one you want matched — a top or a bottom, not both."
+            "Drag any corner or edge to resize the box, and drag the middle to move it. "
+            "If your photo shows a full outfit, frame just the one garment you want matched."
         )
         original_image = Image.open(uploaded_file).convert("RGB")
 
-        crop_col, preview_col = st.columns([2, 1])
+        crop_col, preview_col = st.columns([3, 1])
         with crop_col:
+            # A box that starts nearly full-frame makes it obvious the crop
+            # is adjustable - the default is a small centred rectangle that
+            # reads as fixed. default_coords is (left, right, top, bottom)
+            # in the original image's own pixels.
+            width, height = original_image.size
+            inset_x, inset_y = int(width * 0.06), int(height * 0.06)
+            starting_box = (inset_x, width - inset_x, inset_y, height - inset_y)
+
             # aspect_ratio=None allows a free-form box, not a fixed shape -
-            # a "top" crop and a "bottom" crop are very different shapes.
+            # a "top" crop and a "bottom" crop are very different shapes, so
+            # every edge and corner has to be draggable independently.
             cropped_image = st_cropper(
-                original_image, realtime_update=True, box_color="#8A6552", aspect_ratio=None
+                original_image,
+                realtime_update=True,
+                box_color=CROP_BOX_COLOR,
+                aspect_ratio=None,
+                default_coords=starting_box,
+                stroke_width=3,
             )
         with preview_col:
             with st.container(border=True):

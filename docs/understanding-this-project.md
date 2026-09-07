@@ -125,7 +125,21 @@ it. **Lesson: measurement isn't just a grade, it's a to-do list.**
 I stopped tuning there rather than chasing the last few items, because
 tuning prompts against 49 photos would just be fitting to that set.
 
-**10. Free hosting has a 1GB memory limit.**
+**10. I added more colours, measured, and took them back out.**
+Detection was naming colours too coarsely, so I added finer shades (tan,
+mustard, coral, rust, lavender…) to the detector's palette. Accuracy
+*dropped*, 44.9% → 40.8%. The reason was worth understanding: the
+detector wasn't wrong, it was more *specific* than my labels — it called
+a khaki top "tan" where the catalog said "beige", and a kurta "mustard"
+where the catalog said "yellow". Both are arguably better answers.
+*What I did:* I could have relabelled the catalog to match, but that's
+flattering the metric rather than improving the system. So the detector
+kept the palette that measures best, and the extra shades are offered to
+the *person* instead — the dropdown now has 36 colours to pick from
+while the detector names 17. **Lesson: separate what the model claims
+from what the user can say.**
+
+**11. Free hosting has a 1GB memory limit.**
 I measured 725MB. It fits, but there's not much headroom. I know the fix
 if it ever fails (a smaller CLIP model, or making background removal
 optional) — that's better than being surprised.

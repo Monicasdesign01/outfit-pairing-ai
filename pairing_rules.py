@@ -111,7 +111,14 @@ STYLE_LABELS = {
 # if they are classic complementary or analogous pairs, and neutrals
 # (black/white/gray/cream/navy) are treated as safely pairing with almost
 # everything, matching ordinary styling advice.
-NEUTRAL_COLORS = {"black", "white", "gray", "cream", "navy"}
+NEUTRAL_COLORS = {
+    "black", "white", "gray", "cream", "navy",
+    # Earth and off-white tones behave like neutrals in practice - they sit
+    # under almost anything - and leaving them out meant a beige or tan
+    # item scored 0 against most of the catalog despite being one of the
+    # easiest things to pair.
+    "beige", "tan", "charcoal", "ivory", "silver",
+}
 
 COMPLEMENTARY_PAIRS = {
     frozenset({"blue", "yellow"}),
@@ -127,6 +134,33 @@ ANALOGOUS_PAIRS = {
     frozenset({"olive", "green"}),
     frozenset({"olive", "brown"}),
     frozenset({"brown", "cream"}),
+    # The added shades sit next to colours already in the table, so they
+    # inherit the same relationships - without these a burgundy top would
+    # score zero against maroon and red, which is obviously wrong.
+    frozenset({"burgundy", "maroon"}),
+    frozenset({"burgundy", "red"}),
+    frozenset({"rust", "orange"}),
+    frozenset({"rust", "brown"}),
+    frozenset({"mustard", "yellow"}),
+    frozenset({"mustard", "olive"}),
+    frozenset({"lavender", "purple"}),
+    frozenset({"mint", "green"}),
+    frozenset({"mint", "teal"}),
+    frozenset({"coral", "pink"}),
+    frozenset({"coral", "orange"}),
+    frozenset({"turquoise", "teal"}),
+    frozenset({"turquoise", "blue"}),
+    frozenset({"magenta", "pink"}),
+    frozenset({"magenta", "purple"}),
+    frozenset({"peach", "orange"}),
+    frozenset({"peach", "pink"}),
+    frozenset({"gold", "yellow"}),
+}
+
+COMPLEMENTARY_PAIRS |= {
+    frozenset({"lavender", "mustard"}),
+    frozenset({"mint", "coral"}),
+    frozenset({"turquoise", "rust"}),
 }
 
 

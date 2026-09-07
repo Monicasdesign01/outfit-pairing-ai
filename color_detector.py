@@ -68,6 +68,20 @@ CHROMATIC_FAMILIES = {
     "cream": [(230, 220, 190)],
 }
 
+# Finer shades (tan, mustard, coral, rust and friends) were added here and
+# then taken out again, because measuring showed it made things worse:
+# colour accuracy fell from 44.9% to 40.8%. The cause is interesting - the
+# detector wasn't wrong, it was *more specific* than the ground truth. It
+# started calling a khaki top "tan" where the catalog says "beige", and a
+# kurta "mustard" where the catalog says "yellow". Both are arguably
+# better answers, but they score as misses against labels written in the
+# coarser vocabulary.
+#
+# Rather than relabel the catalog to match the model's output - which is
+# how you flatter a metric instead of improving a system - the extra
+# shades stay available for a *person* to choose (HUMAN_ONLY_COLORS
+# below) while the detector keeps the palette that measures best.
+
 # Below this HSV saturation, a color is judged to have no real hue at
 # all and is named purely by brightness/warmth (see NEUTRAL_REFERENCE,
 # plus the "beige" special case below).
@@ -91,6 +105,48 @@ WHITE_BRIGHTNESS_THRESHOLD = 0.65
 # ValueError on ".index('beige')" because it wasn't in the dropdown's
 # option list at all.
 ALL_COLOR_NAMES = sorted(set(NEUTRAL_REFERENCE) | {"beige"} | set(CHROMATIC_FAMILIES))
+
+# Colours a person can pick by hand, which is deliberately a *superset* of
+# what the detector can produce. Automatic detection is measurably
+# imperfect, so the customer needs to be able to name the colour they
+# actually have - including shades the detector has no reference point for
+# (a true silver, or a patterned garment that isn't one colour at all).
+#
+# The invariant that matters: everything the detector can return must also
+# be selectable, or the app crashes trying to preselect a value that isn't
+# in the list. That's the bug that took the live app down once, so it's
+# asserted below rather than left to chance.
+HUMAN_ONLY_COLORS = {
+    # Shades the detector deliberately doesn't try to name (see the note
+    # above CHROMATIC_FAMILIES) but that a person can see perfectly well.
+    "burgundy",
+    "rust",
+    "mustard",
+    "tan",
+    "khaki",
+    "lavender",
+    "lilac",
+    "mint",
+    "sage",
+    "coral",
+    "turquoise",
+    "magenta",
+    "peach",
+    "plum",
+    # Tones that a single dominant-colour reading can't represent at all.
+    "charcoal",       # very dark grey - the detector calls this black or gray
+    "ivory",          # off-white with warmth
+    "silver",         # reads as plain grey
+    "gold",           # reads as yellow or brown depending on the lighting
+    "multicoloured",  # patterned garments genuinely aren't one colour
+}
+
+SELECTABLE_COLOR_NAMES = sorted(set(ALL_COLOR_NAMES) | HUMAN_ONLY_COLORS)
+
+assert set(ALL_COLOR_NAMES) <= set(SELECTABLE_COLOR_NAMES), (
+    "every detectable colour must also be selectable, or the app will crash "
+    "preselecting a detected value that isn't in the dropdown"
+)
 
 
 def closest_color_name(rgb):
